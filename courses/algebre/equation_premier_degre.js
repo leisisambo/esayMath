@@ -347,16 +347,13 @@ Après avoir résolu, remplace $x$ dans l'équation de départ pour contrôler l
         }
       ];
       questions.push(...advanced.map((exercise) => () => exercise));
-      if (!questions.pool) {
-        // Mélange une série sans répéter une question avant d'avoir parcouru le pool.
-        questions.pool = questions.map((_, i) => i);
-      }
-      if (!questions.pool.length) questions.pool = questions.map((_, i) => i);
-      for (let i = questions.pool.length - 1; i > 0; i--) {
+      if (!this.questionPool) this.questionPool = questions.map((_, i) => i);
+      if (!this.questionPool.length) this.questionPool = questions.map((_, i) => i);
+      for (let i = this.questionPool.length - 1; i > 0; i--) {
         const j = rand(0, i);
-        [questions.pool[i], questions.pool[j]] = [questions.pool[j], questions.pool[i]];
+        [this.questionPool[i], this.questionPool[j]] = [this.questionPool[j], this.questionPool[i]];
       }
-      return questions[questions.pool.pop()]();
+      return questions[this.questionPool.pop()]();
     }
   }]
 });
