@@ -1,0 +1,1156 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EasyMath</title>
+<script>
+(function(){try{var t=localStorage.getItem('em-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.classList.toggle('dark',t==='dark');}catch(e){}})();
+</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['Inter','ui-sans-serif','system-ui','sans-serif'],mono:['JetBrains Mono','ui-monospace','monospace']}}}};
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f6f7fb;--surface:#ffffff;--surface-2:#f0f2f8;--border:#e3e6ee;--fg:#0f172a;--muted:#64748b;
+  --accent:#4f46e5;--accent-fg:#ffffff;--accent-soft:#eceeff;
+  --ok:#059669;--ok-soft:#e6f7f0;--bad:#dc2626;--bad-soft:#fdecec;--warn:#d97706;--warn-soft:#fff4e0;
+  --shadow:0 18px 40px -18px rgba(15,23,42,.28);
+}
+.dark{
+  --bg:#0a0e17;--surface:#111827;--surface-2:#182033;--border:#222c3f;--fg:#e8ecf4;--muted:#8b97ad;
+  --accent:#818cf8;--accent-fg:#0b1020;--accent-soft:#1c2142;
+  --ok:#34d399;--ok-soft:#0f2a24;--bad:#f87171;--bad-soft:#2f1517;--warn:#fbbf24;--warn-soft:#2e2410;
+  --shadow:0 18px 40px -18px rgba(0,0,0,.75);
+}
+*{-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:Inter,ui-sans-serif,system-ui,sans-serif;transition:background .3s,color .3s}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}::-webkit-scrollbar-track{background:transparent}
+.no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{scrollbar-width:none}
+.surface{background:var(--surface)}.surface-2{background:var(--surface-2)}
+.bd{border:1px solid var(--border)}.bd-r{border-right:1px solid var(--border)}.bd-b{border-bottom:1px solid var(--border)}.bd-t{border-top:1px solid var(--border)}
+.muted{color:var(--muted)}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+
+/* boutons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;border-radius:.9rem;padding:.65rem 1.1rem;font-size:.875rem;font-weight:600;line-height:1;cursor:pointer;border:1px solid transparent;transition:transform .15s,background .2s,box-shadow .2s,border-color .2s,opacity .2s;user-select:none}
+#btn-add-course{width:100%}
+.btn:active{transform:scale(.96)}
+.btn:disabled{opacity:.45;pointer-events:none}
+.btn-primary{background:var(--accent);color:var(--accent-fg);box-shadow:0 8px 20px -10px var(--accent)}
+.btn-primary:hover{box-shadow:0 12px 24px -10px var(--accent);filter:brightness(1.06)}
+.btn-ghost{background:transparent;color:var(--fg)}.btn-ghost:hover{background:var(--surface-2)}
+.btn-outline{background:transparent;border-color:var(--border);color:var(--fg)}.btn-outline:hover{background:var(--surface-2)}
+.btn-danger{background:var(--bad);color:#fff}.btn-danger:hover{filter:brightness(1.08)}
+.icon-btn{display:inline-grid;place-items:center;width:2rem;height:2rem;border-radius:.65rem;color:var(--muted);background:transparent;border:0;cursor:pointer;transition:background .2s,color .2s,transform .15s;flex-shrink:0}
+.icon-btn:hover{background:var(--surface-2);color:var(--fg)}.icon-btn:active{transform:scale(.9)}
+.icon-btn.danger:hover{background:var(--bad-soft);color:var(--bad)}
+.icon-btn svg,.btn svg{width:1.05rem;height:1.05rem}
+
+/* champs */
+.input{width:100%;border-radius:.85rem;border:1px solid var(--border);background:var(--surface);color:var(--fg);padding:.65rem .9rem;font-size:.875rem;outline:none;transition:border-color .2s,box-shadow .2s}
+.input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+.input::placeholder{color:var(--muted);opacity:.75}
+textarea.input{resize:vertical;line-height:1.55;font-size:.8rem;min-height:12rem}
+.field{display:block;margin-bottom:1rem}.field>span{display:block;font-size:.75rem;font-weight:600;color:var(--muted);margin-bottom:.4rem;letter-spacing:.02em}
+.hint{font-size:.75rem;color:var(--muted);line-height:1.55}
+.hint code,.doc code{font-family:'JetBrains Mono',monospace;background:var(--surface-2);padding:.08rem .35rem;border-radius:.4rem;font-size:.92em}
+.link{color:var(--accent);font-weight:600;cursor:pointer;background:none;border:0;padding:0}.link:hover{text-decoration:underline}
+
+/* arbre */
+.course-row,.lesson-row{display:flex;align-items:center;gap:.5rem;border-radius:.8rem;cursor:pointer;transition:background .15s,color .15s}
+.course-row{padding:.5rem .55rem;font-size:.875rem;font-weight:600}
+.course-row:hover,.lesson-row:hover{background:var(--surface-2)}
+.lesson-row{padding:.42rem .55rem .42rem .55rem;margin-left:1.4rem;font-size:.84rem;color:var(--muted);font-weight:500}
+.lesson-row.active{background:var(--accent-soft);color:var(--accent)}
+.chev{display:grid;place-items:center;transition:transform .25s;color:var(--muted)}
+.chev svg{width:.95rem;height:.95rem}.chev.open{transform:rotate(90deg)}
+.course-collapse{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s ease}
+.course-collapse.open{grid-template-rows:1fr}
+.collapse-inner{overflow:hidden;min-height:0}
+.row-actions{display:flex;gap:.1rem;opacity:1}
+@media(min-width:768px){.row-actions .hov{opacity:0;transition:opacity .15s}.course-row:hover .hov,.lesson-row:hover .hov,.row-actions:focus-within .hov{opacity:1}}
+.dot{width:.95rem;height:.95rem;flex-shrink:0;border-radius:99px;border:1.5px solid var(--border);display:grid;place-items:center;transition:all .2s}
+.dot.ok{background:var(--ok);border-color:var(--ok);color:#fff}.dot svg{width:.6rem;height:.6rem;stroke-width:3.5}
+.badge{font-size:.68rem;font-weight:600;color:var(--muted);background:var(--surface-2);border-radius:99px;padding:.1rem .5rem}
+
+/* onglets */
+.tab{display:flex;align-items:center;gap:.5rem;height:2.25rem;padding:0 .35rem 0 .8rem;border-radius:.8rem;font-size:.8125rem;font-weight:500;color:var(--muted);cursor:pointer;white-space:nowrap;transition:background .2s,color .2s;animation:pop .22s ease both}
+.tab:hover{background:var(--surface-2)}.tab.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.tab .x{display:grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:.5rem}.tab .x:hover{background:color-mix(in srgb,var(--fg) 12%,transparent)}.tab .x svg{width:.8rem;height:.8rem}
+.timer-wrap{height:0;overflow:hidden;transition:height .25s}
+.timer-wrap.on{height:2.1rem}
+.timer-track{height:.45rem;border-radius:99px;background:var(--surface-2);overflow:hidden;flex:1}
+.timer-bar{height:100%;border-radius:99px;background:var(--accent);transform-origin:left;transition:transform .12s linear,background .3s}
+.timer-bar.low{background:var(--warn)}.timer-bar.crit{background:var(--bad)}
+
+/* modals */
+.modal-back{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:1rem;background:rgba(8,12,22,.5);backdrop-filter:blur(6px);opacity:0;transition:opacity .2s}
+.modal-back.show{opacity:1}
+.modal{width:100%;max-width:30rem;max-height:92vh;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:1.5rem;box-shadow:var(--shadow);transform:translateY(14px) scale(.97);transition:transform .25s cubic-bezier(.2,.9,.3,1.2)}
+.modal-back.show .modal{transform:none}
+.modal-wide{max-width:44rem}
+.modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;padding:1.25rem 1.4rem .6rem}
+.modal-head h3{font-size:1.1rem;font-weight:700;letter-spacing:-.01em}.modal-head p{font-size:.8rem;color:var(--muted);margin-top:.15rem}
+.modal-body{padding:.6rem 1.4rem 1rem;overflow:auto}
+.modal-foot{display:flex;justify-content:flex-end;gap:.6rem;padding:.9rem 1.4rem 1.2rem}
+.modal-error{margin:0 1.4rem .4rem;padding:.6rem .85rem;border-radius:.8rem;background:var(--bad-soft);color:var(--bad);font-size:.8rem;font-weight:500}
+.doc h4{font-weight:700;font-size:.9rem;margin:1.1rem 0 .4rem}.doc p,.doc li{font-size:.84rem;line-height:1.65;color:var(--muted)}.doc ul{padding-left:1.1rem;list-style:disc}
+.doc pre{background:var(--surface-2);border:1px solid var(--border);border-radius:.9rem;padding:.8rem 1rem;overflow:auto;font-size:.76rem;line-height:1.6;margin:.5rem 0;font-family:'JetBrains Mono',monospace;color:var(--fg)}
+
+/* toasts */
+#toasts{position:fixed;right:1rem;bottom:1rem;z-index:80;display:flex;flex-direction:column;gap:.5rem;align-items:flex-end;pointer-events:none}
+.toast{pointer-events:auto;max-width:22rem;padding:.7rem 1rem;border-radius:.95rem;background:var(--fg);color:var(--bg);font-size:.82rem;font-weight:500;box-shadow:var(--shadow);animation:toastIn .3s ease both}
+.toast.error{background:var(--bad);color:#fff}.toast.ok{background:var(--ok);color:#fff}
+.toast.out{animation:toastOut .25s ease both}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes toastOut{to{opacity:0;transform:translateY(6px) scale(.96)}}
+@keyframes pop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.floaty{animation:floaty 4s ease-in-out infinite}
+.logo{width:2.25rem;height:2.25rem;border-radius:.8rem;display:grid;place-items:center;color:#fff;font-weight:800;font-size:1.15rem;background:linear-gradient(135deg,#6366f1,#8b5cf6 55%,#ec4899);box-shadow:0 8px 18px -8px #6366f1}
+#sidebar{transition:transform .3s ease}
+.fade-in{animation:pop .25s ease both}
+</style>
+</head>
+<body>
+<div id="root" class="flex h-full overflow-hidden">
+  <div id="scrim" class="fixed inset-0 z-30 hidden md:hidden" style="background:rgba(8,12,22,.45)"></div>
+
+  <!-- ====== MENU + COURS ====== -->
+  <aside id="sidebar" class="surface bd-r fixed md:static inset-y-0 left-0 z-40 w-[19rem] max-w-[85vw] shrink-0 flex flex-col -translate-x-full md:translate-x-0">
+    <div class="flex items-center justify-between px-4 pt-4 pb-3">
+      <div class="flex items-center gap-3">
+        <div class="logo">∑</div>
+        <div><div class="font-extrabold tracking-tight leading-none">EasyMath</div><div class="text-[11px] muted mt-1">Apprendre en pratiquant</div></div>
+      </div>
+      <button id="btn-theme" class="icon-btn" title="Changer de thème"></button>
+    </div>
+    <div class="px-4">
+      <button id="btn-add-course" class="btn btn-primary w-full"></button>
+    </div>
+    <div class="px-4 pt-3">
+      <div class="relative">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 muted" id="ico-search"></span>
+        <input id="search" class="input" style="padding-left:2.3rem;border-radius:999px" placeholder="Rechercher un cours ou une leçon…" autocomplete="off">
+      </div>
+    </div>
+    <div class="px-5 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider muted">Mes cours</div>
+    <nav id="tree" class="flex-1 overflow-y-auto px-3 pb-3"></nav>
+    <div class="bd-t p-3 flex gap-2">
+      <button id="btn-export" class="btn btn-outline flex-1" style="padding:.6rem .7rem"></button>
+      <button id="btn-help" class="btn btn-ghost" style="padding:.6rem .8rem"></button>
+    </div>
+  </aside>
+
+  <!-- ====== ONGLETS ====== -->
+  <main class="flex-1 min-w-0 flex flex-col">
+    <header class="bd-b surface flex items-center gap-2 px-3 h-14 shrink-0">
+      <button id="btn-menu" class="icon-btn md:hidden"></button>
+      <div id="tabs" class="flex items-center gap-1 overflow-x-auto no-scrollbar flex-1"></div>
+    </header>
+    <div id="panels" class="relative flex-1 min-h-0">
+      <div id="empty" class="absolute inset-0 grid place-items-center p-6 text-center">
+        <div class="max-w-sm">
+          <div class="floaty logo mx-auto mb-5" style="width:4rem;height:4rem;font-size:2rem;border-radius:1.3rem">∑</div>
+          <h2 class="text-xl font-bold tracking-tight">Prêt à apprendre ?</h2>
+          <p id="empty-text" class="muted text-sm mt-2 leading-relaxed">Créez un cours, ajoutez-y des leçons, puis ouvrez une leçon pour la voir apparaître dans un onglet.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div id="toasts"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   EasyMath — main process
+   index.html : point d'entrée. Gère IndexedDB, l'UI, le compteur
+   (barre de progression), l'interpréteur Markdown + maths et le
+   gestionnaire de scripts de leçons (1 leçon = 1 iframe + 1 web worker).
+   ===================================================================== */
+
+/* ---------- utilitaires ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const h = (tag, cls, html) => { const el = document.createElement(tag); if (cls) el.className = cls; if (html != null) el.innerHTML = html; return el; };
+
+const ICONS = {
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  chevron:'<path d="m9 18 6-6-6-6"/>',
+  folder:'<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  trash:'<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  edit:'<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+  moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+  refresh:'<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  undo:'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  book:'<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>',
+  code:'<path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/>',
+};
+const icon = (n, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">${ICONS[n]}</svg>`;
+
+function toast(msg, type = '') {
+  const t = h('div', 'toast ' + type, esc(msg));
+  $('#toasts').append(t);
+  setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 260); }, type === 'error' ? 5200 : 2600);
+}
+
+/* ---------- IndexedDB ---------- */
+const DB = {
+  db: null,
+  open() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('easymath', 1);
+      r.onupgradeneeded = () => {
+        const db = r.result;
+        db.createObjectStore('courses', { keyPath: 'id', autoIncrement: true });
+        db.createObjectStore('lessons', { keyPath: 'id', autoIncrement: true }).createIndex('courseId', 'courseId');
+        db.createObjectStore('progress', { keyPath: 'lessonId' });
+        const i = db.createObjectStore('interactions', { keyPath: 'id', autoIncrement: true });
+        i.createIndex('lessonId', 'lessonId'); i.createIndex('courseId', 'courseId');
+        const x = db.createObjectStore('exercises', { keyPath: 'id', autoIncrement: true });
+        x.createIndex('lessonId', 'lessonId'); x.createIndex('courseId', 'courseId');
+      };
+      r.onsuccess = () => { this.db = r.result; res(); };
+      r.onerror = () => rej(r.error);
+    });
+  },
+  run(stores, mode, fn) {
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction(stores, mode);
+      let out;
+      const rq = fn(tx);
+      if (rq) rq.onsuccess = () => { out = rq.result; };
+      tx.oncomplete = () => res(out);
+      tx.onerror = tx.onabort = () => rej(tx.error);
+    });
+  },
+  all(store) { return this.run(store, 'readonly', tx => tx.objectStore(store).getAll()); },
+  put(store, v) { return this.run(store, 'readwrite', tx => tx.objectStore(store).put(v)); },
+  add(store, v) { return this.run(store, 'readwrite', tx => tx.objectStore(store).add(v)); },
+  del(store, k) { return this.run(store, 'readwrite', tx => tx.objectStore(store).delete(k)); },
+  deleteLesson(id) {
+    return this.run(['lessons', 'progress'], 'readwrite', tx => { tx.objectStore('lessons').delete(id); tx.objectStore('progress').delete(id); });
+  },
+  deleteCourse(id, lessonIds) {
+    return this.run(['courses', 'lessons', 'progress'], 'readwrite', tx => {
+      tx.objectStore('courses').delete(id);
+      lessonIds.forEach(l => { tx.objectStore('lessons').delete(l); tx.objectStore('progress').delete(l); });
+    });
+  },
+};
+
+/* ---------- interpréteur Markdown + symboles mathématiques ---------- */
+const CALLOUT_TITLES = { def: 'Définition', ex: 'Exemple', note: 'Remarque', warn: 'Attention' };
+function renderMarkdown(src, inline = false) {
+  src = String(src ?? '');
+  if (!window.marked || !window.katex) return inline ? esc(src) : '<p>' + esc(src).replace(/\n/g, '<br>') + '</p>';
+  const maths = [];
+  const stash = (tex, display) => { maths.push({ tex, display }); return 'MATHPH' + (maths.length - 1) + 'END'; };
+  src = src
+    .replace(/\$\$([\s\S]+?)\$\$/g, (_, t) => stash(t, true))
+    .replace(/\\\[([\s\S]+?)\\\]/g, (_, t) => stash(t, true))
+    .replace(/\\\(([\s\S]+?)\\\)/g, (_, t) => stash(t, false))
+    .replace(/(?<![\\$])\$(?!\s)((?:\\.|[^$\\\n])+?)(?<!\s)\$(?!\d)/g, (_, t) => stash(t, false));
+  if (!inline) {
+    src = src.replace(/^:::(def|ex|note|warn)[ \t]*(.*)\n([\s\S]*?)\n:::[ \t]*$/gm, (_, type, title, body) =>
+      '\n<div class="callout callout-' + type + '">\n\n<p class="callout-title">' + (title.trim() || CALLOUT_TITLES[type]) + '</p>\n\n' + body + '\n\n</div>\n');
+  }
+  let html = inline ? marked.parseInline(src) : marked.parse(src, { gfm: true });
+  html = html.replace(/MATHPH(\d+)END/g, (_, i) => {
+    const m = maths[+i];
+    try { return katex.renderToString(m.tex.trim(), { displayMode: m.display, throwOnError: false, strict: 'ignore' }); }
+    catch (e) { return '<code>' + esc(m.tex) + '</code>'; }
+  });
+  return html;
+}
+
+/* ---------- Runtime de l'iframe (affichage de la leçon) ---------- */
+function iframeRuntime() {
+  const app = document.getElementById('app');
+  let port = null, slideState = null, ex = null;
+  const send = m => port && port.postMessage(m);
+  const h = (tag, cls, html) => { const el = document.createElement(tag); if (cls) el.className = cls; if (html != null) el.innerHTML = html; return el; };
+  const btn = (label, cls, fn) => { const b = h('button', cls, label); b.type = 'button'; b.onclick = fn; return b; };
+  const setView = node => { app.replaceChildren(node); node.classList.add('view-in'); window.scrollTo(0, 0); };
+  const loadingView = txt => h('div', 'center-box', '<div class="spinner"></div><p>' + (txt || 'Chargement…') + '</p>');
+  function toast(msg) { const t = h('div', 'ftoast', msg); document.body.append(t); setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 300); }, 2400); }
+
+  window.addEventListener('message', e => {
+    const d = e.data || {};
+    if (d.type === 'em-port' && e.ports[0]) { port = e.ports[0]; port.onmessage = ev => onMsg(ev.data); }
+    if (d.type === 'em-theme') document.documentElement.classList.toggle('dark', d.theme === 'dark');
+    if (d.type === 'em-runtime-error') {
+      const page = h('div', 'page');
+      page.append(h('h2', 'prose', 'Impossible de démarrer cette leçon'));
+      const detail = h('pre', 'prose'); detail.textContent = d.message || 'Erreur inconnue';
+      page.append(detail); setView(page);
+    }
+  });
+
+  function onMsg(m) {
+    switch (m.t) {
+      case 'loading': return setView(loadingView(m.text));
+      case 'html': return htmlView(m);
+      case 'slides': return slidesView(m);
+      case 'exercise': return exerciseView(m);
+      case 'reveal': return reveal(m);
+    }
+  }
+
+  function htmlView(m) {
+    const page = h('div', 'page');
+    page.append(h('div', 'prose', m.html));
+    if (m.actions && m.actions.length) {
+      const row = h('div', 'actions');
+      m.actions.forEach(a => row.append(btn(a.label, 'btn ' + (a.primary ? 'btn-primary' : 'btn-outline'), () => send({ t: 'action', id: a.id }))));
+      page.append(row);
+    }
+    setView(page);
+  }
+
+  /* --- slides --- */
+  function slidesView(m) {
+    slideState = { i: 0, slides: m.slides, mode: m.mode };
+    const wrap = h('div', 'slides');
+    const top = h('div', 'slides-top');
+    const bar = h('div', 'slides-bar'); const fill = h('i'); bar.append(fill);
+    const counter = h('span', 'slides-count');
+    top.append(bar, counter);
+    if (m.mode === 'review') { const q = btn('✕', 'icon-btn', () => send({ t: 'slides:done', understood: true })); q.title = 'Retour aux exercices'; top.append(q); }
+    const stage = h('div', 'slides-stage'); const nav = h('div', 'slides-nav');
+    wrap.append(top, stage, nav);
+    slideState.refs = { fill, counter, stage, nav };
+    setView(wrap);
+    if (m.notice) toast(m.notice);
+    drawSlide(1);
+  }
+  function drawSlide(dir) {
+    const s = slideState, r = s.refs, last = s.i === s.slides.length - 1;
+    r.fill.style.width = ((s.i + 1) / s.slides.length * 100) + '%';
+    r.counter.textContent = (s.i + 1) + ' / ' + s.slides.length;
+    r.stage.replaceChildren(h('div', 'slide prose ' + (dir >= 0 ? 'from-right' : 'from-left'), s.slides[s.i]));
+    r.nav.replaceChildren();
+    const prev = btn('← Précédent', 'btn btn-ghost', () => go(-1)); prev.disabled = s.i === 0;
+    r.nav.append(prev);
+    if (!last) r.nav.append(btn('Suivant →', 'btn btn-primary', () => go(1)));
+    else if (s.mode === 'review') r.nav.append(btn('Retour aux exercices', 'btn btn-primary', () => send({ t: 'slides:done', understood: true })));
+    else {
+      const g = h('div', 'nav-group');
+      g.append(
+        btn("Je n'ai pas compris", 'btn btn-outline', () => { send({ t: 'slides:done', understood: false }); setView(loadingView('On reprend la leçon…')); }),
+        btn("J'ai compris ✓", 'btn btn-ok', () => { send({ t: 'slides:done', understood: true }); setView(loadingView('Préparation des exercices…')); })
+      );
+      r.nav.append(g);
+    }
+  }
+  function go(d) { const s = slideState; const n = s.i + d; if (n < 0 || n >= s.slides.length) return; s.i = n; drawSlide(d); }
+  document.addEventListener('keydown', e => {
+    if (!slideState || !document.querySelector('.slides')) return;
+    if (e.key === 'ArrowRight') go(1); else if (e.key === 'ArrowLeft') go(-1);
+  });
+
+  /* --- exercices --- */
+  function exerciseView(m) {
+    const hd = m.header;
+    const page = h('div', 'page');
+    const top = h('div', 'ex-top');
+    top.append(h('span', 'chip chip-accent', hd.type));
+    top.append(h('span', 'chip', 'Question ' + hd.index + ' / ' + hd.total));
+    if (hd.timeout) top.append(h('span', 'chip', '⏱ ' + hd.timeout + ' s'));
+    top.append(h('span', 'chip chip-ok', '✓ ' + hd.score));
+    const sp = h('span', 'grow'); top.append(sp);
+    if (hd.canReview) top.append(btn('Revoir la leçon', 'btn btn-ghost btn-sm', () => send({ t: 'review' })));
+    const prog = h('div', 'ex-prog', '<i style="width:' + ((hd.index - 1) / hd.total * 100) + '%"></i>');
+    const card = h('div', 'card prose', m.question);
+    const grid = h('div', 'choices');
+    ex = { choices: [], locked: false };
+    m.choices.forEach((c, i) => {
+      const b = h('button', 'choice', '<span class="letter">' + String.fromCharCode(65 + i) + '</span><span class="c">' + c + '</span>');
+      b.type = 'button';
+      b.style.animationDelay = (i * 60) + 'ms';
+      b.onclick = () => { if (ex.locked) return; ex.locked = true; b.classList.add('picked'); ex.choices.forEach(x => x.disabled = true); send({ t: 'choice', index: i }); };
+      ex.choices.push(b); grid.append(b);
+    });
+    ex.feedback = h('div', 'feedback-slot'); ex.steps = h('div', 'steps-slot'); ex.foot = h('div', 'actions');
+    page.append(top, prog, card, grid, ex.feedback, ex.steps, ex.foot);
+    setView(page);
+  }
+  function reveal(m) {
+    if (!ex) return;
+    ex.locked = true;
+    ex.choices.forEach((b, i) => {
+      b.disabled = true; b.classList.remove('picked');
+      if (i === m.correctIndex) b.classList.add('is-correct');
+      else if (i === m.chosen) b.classList.add('is-wrong');
+      else b.classList.add('dim');
+    });
+    const sec = (m.ms / 1000).toFixed(1).replace('.', ',') + ' s';
+    const txt = { correct: ['✓', 'Bonne réponse !', 'Temps : ' + sec], wrong: ['✕', 'Mauvaise réponse', 'La bonne réponse est surlignée en vert.'], timeout: ['⏱', 'Temps écoulé', 'La bonne réponse est surlignée en vert.'] }[m.status];
+    ex.feedback.replaceChildren(h('div', 'feedback ' + m.status, '<b>' + txt[0] + '</b><div><strong>' + txt[1] + '</strong><span>' + txt[2] + '</span></div>'));
+    if (m.steps && m.steps.length) {
+      const box = h('div', 'card steps', '<h4>Solution pas à pas</h4>');
+      m.steps.forEach((s, i) => { const row = h('div', 'step', '<span class="n">' + (i + 1) + '</span><div class="prose">' + s + '</div>'); row.style.animationDelay = (i * 90) + 'ms'; box.append(row); });
+      ex.steps.replaceChildren(box);
+    }
+    ex.foot.replaceChildren(btn(m.last ? 'Voir le bilan →' : 'Question suivante →', 'btn btn-primary', () => send({ t: 'next' })));
+    ex.foot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  setView(loadingView('Chargement de la leçon…'));
+}
+
+/* ---------- Runtime du Web Worker (cerveau de la leçon) ---------- */
+function workerRuntime() {
+  'use strict';
+  let port = null, info = {}, rid = 0, tid = 0, waiter = null, hasRendered = false;
+  const pending = new Map(), timerCbs = new Map();
+  const post = (type, payload) => self.postMessage(Object.assign({ type }, payload || {}));
+  const request = (type, payload) => new Promise((res, rej) => { const id = ++rid; pending.set(id, { res, rej }); post(type, Object.assign({ id }, payload || {})); });
+  const toFrame = m => { hasRendered = true; if (port) port.postMessage(m); };
+  const waitFor = (...types) => new Promise(res => { waiter = { types, res }; });
+  const dispatch = m => { if (waiter && waiter.types.includes(m.t)) { const w = waiter; waiter = null; w.res(m); } };
+  const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const md = (text, inline) => request('md', { text: String(text), inline: !!inline });
+
+  self.onmessage = e => {
+    const m = e.data;
+    if (m.type === 'init') { port = m.port; port.onmessage = ev => dispatch(ev.data); boot(m); }
+    else if (m.type === 'reply') { const p = pending.get(m.id); if (p) { pending.delete(m.id); m.error ? p.rej(new Error(m.error)) : p.res(m.result); } }
+    else if (m.type === 'timer:end') { const cb = timerCbs.get(m.timerId); if (cb) { timerCbs.delete(m.timerId); cb(); } dispatch({ t: 'timeout', timerId: m.timerId }); }
+  };
+  function fail(e) {
+    const msg = (e && e.message) || String(e);
+    toFrame({ t: 'html', html: '<h2>Erreur dans le script de la leçon</h2><pre>' + esc(msg) + '</pre>', actions: [] });
+    post('error', { message: msg });
+  }
+  self.addEventListener('unhandledrejection', ev => fail(ev.reason));
+
+  const util = {
+    randInt: (a, b) => Math.floor(Math.random() * (b - a + 1)) + a,
+    pick: arr => arr[Math.floor(Math.random() * arr.length)],
+    shuffle: arr => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; },
+    gcd: (a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) { [a, b] = [b, a % b]; } return a; },
+    lcm: (a, b) => Math.abs(a * b) / util.gcd(a, b),
+    frac: (n, d) => (d === 1 ? String(n) : '\\frac{' + n + '}{' + d + '}'),
+    simplify: (n, d) => { const g = util.gcd(n, d) || 1; return [n / g, d / g]; },
+  };
+
+  const timers = {
+    start(seconds, label, onEnd) { const id = ++tid; if (onEnd) timerCbs.set(id, onEnd); post('timer:start', { timerId: id, seconds, label: label || '' }); return id; },
+    stop(id) { timerCbs.delete(id); post('timer:stop', { timerId: id }); },
+  };
+
+  /* --- slides : boucle jusqu'à « J'ai compris » --- */
+  async function runSlides(list, review, startedAt) {
+    const htmls = await Promise.all(list.map(s => md(typeof s === 'string' ? s : s.md)));
+    let retries = 0, notice = '';
+    const t0 = startedAt || performance.now();
+    while (true) {
+      toFrame({ t: 'slides', slides: htmls, mode: review ? 'review' : 'learn', notice });
+      const m = await waitFor('slides:done');
+      if (m.understood) return { understood: true, retries, ms: performance.now() - t0 };
+      retries++; notice = 'On reprend la leçon depuis le début.';
+      if (!review) await request('save', { table: 'interactions', row: { event: 'not_understood', seconds: Math.round((performance.now() - t0) / 1000), retries } });
+    }
+  }
+
+  /* --- exercices générés --- */
+  function normalize(g) {
+    let choices, correctIndex;
+    if (Array.isArray(g.choices)) {
+      const base = g.choices.map(String); const ci = g.correctIndex || 0;
+      const idx = g.shuffle === false ? base.map((_, i) => i) : util.shuffle(base.map((_, i) => i));
+      choices = idx.map(i => base[i]); correctIndex = idx.indexOf(ci);
+    } else {
+      const ans = String(g.answer); const seen = new Set([ans]); const d = [];
+      (g.distractors || []).forEach(x => { const s = String(x); if (!seen.has(s)) { seen.add(s); d.push(s); } });
+      choices = util.shuffle([ans].concat(d.slice(0, (g.maxChoices || 4) - 1))); correctIndex = choices.indexOf(ans);
+    }
+    const steps = g.steps == null ? [] : (Array.isArray(g.steps) ? g.steps : [g.steps]);
+    return { question: String(g.question), choices, correctIndex, steps, data: g.data || {} };
+  }
+  async function askExercise(cfg, ex, i, total, score) {
+    const norm = normalize(await ex.generate(util));
+    const [qHtml, cHtml, sHtml] = await Promise.all([
+      md(norm.question),
+      Promise.all(norm.choices.map(c => md(c, true))),
+      Promise.all(norm.steps.map(s => md(s))),
+    ]);
+    const hasSlides = !!(cfg.slides && cfg.slides.length);
+    const header = { type: ex.type || 'Exercice', index: i + 1, total, score, timeout: ex.timeout || 0, canReview: hasSlides };
+    let outcome, ms;
+    while (true) {
+      toFrame({ t: 'exercise', header, question: qHtml, choices: cHtml });
+      const t0 = performance.now();
+      const timerId = ex.timeout ? timers.start(ex.timeout, header.type) : 0;
+      let m;
+      do { m = await waitFor('choice', 'timeout', 'review'); } while (m.t === 'timeout' && m.timerId !== timerId);
+      ms = performance.now() - t0;
+      if (timerId) timers.stop(timerId);
+      if (m.t === 'review') { await runSlides(cfg.slides, true); continue; }
+      outcome = m; break;
+    }
+    const timedOut = outcome.t === 'timeout';
+    const correct = !timedOut && outcome.index === norm.correctIndex;
+    toFrame({ t: 'reveal', status: timedOut ? 'timeout' : correct ? 'correct' : 'wrong', chosen: timedOut ? -1 : outcome.index, correctIndex: norm.correctIndex, steps: sHtml, ms, last: i + 1 === total });
+    const nextP = waitFor('next');
+    await request('save', { table: 'exercises', row: {
+      exerciseType: header.type, question: norm.question, data: JSON.stringify(norm.data),
+      userAnswer: timedOut ? '' : norm.choices[outcome.index], correctAnswer: norm.choices[norm.correctIndex],
+      correct, timedOut, timeMs: Math.round(ms), timeLimit: ex.timeout || 0,
+    } });
+    await nextP;
+    return { correct, ms };
+  }
+  async function runExercises(cfg) {
+    const exs = cfg.exercises, rounds = cfg.rounds || 10;
+    while (true) {
+      let score = 0; const times = [];
+      for (let i = 0; i < rounds; i++) {
+        const ex = exs.length === 1 ? exs[0] : util.pick(exs);
+        const r = await askExercise(cfg, ex, i, rounds, score);
+        if (r.correct) { score++; times.push(r.ms); }
+      }
+      const avg = times.length ? (times.reduce((a, b) => a + b, 0) / times.length / 1000).toFixed(1).replace('.', ',') + ' s' : '—';
+      const pct = Math.round(score / rounds * 100);
+      const html = '<h1>Bilan de la série</h1><div class="stats">'
+        + '<div class="stat"><b>' + score + ' / ' + rounds + '</b><span>Bonnes réponses</span></div>'
+        + '<div class="stat"><b>' + pct + ' %</b><span>Réussite</span></div>'
+        + '<div class="stat"><b>' + avg + '</b><span>Temps moyen (bonnes réponses)</span></div></div>'
+        + '<p>' + (pct >= 80 ? 'Excellent travail, continuez ainsi !' : pct >= 50 ? 'Bien joué, encore un peu de pratique et ce sera parfait.' : 'Pas de souci : revoyez la leçon puis réessayez.') + '</p>';
+      const actions = [{ id: 'again', label: 'Nouvelle série', primary: true }];
+      if (cfg.slides && cfg.slides.length) actions.push({ id: 'review', label: 'Revoir la leçon' });
+      toFrame({ t: 'html', html, actions });
+      const a = await waitFor('action');
+      if (a.id === 'review') await runSlides(cfg.slides, true);
+    }
+  }
+  async function lesson(cfg) {
+    cfg = cfg || {};
+    const slides = cfg.slides || [];
+    if (slides.length && !info.understood) {
+      const r = await runSlides(slides, false, performance.now());
+      await request('understood', { ms: r.ms, retries: r.retries });
+      info.understood = true;
+    }
+    if (cfg.exercises && cfg.exercises.length) return runExercises(cfg);
+    while (slides.length) {
+      toFrame({ t: 'html', html: '<h1>Leçon terminée ✓</h1><p>Cette leçon ne contient pas d\'exercices.</p>', actions: [{ id: 'review', label: 'Revoir la leçon', primary: true }] });
+      await waitFor('action');
+      await runSlides(slides, true);
+    }
+  }
+
+  const EM = {
+    info,
+    util,
+    md,
+    lesson,
+    slides: (list, opts) => runSlides(list, !!(opts && opts.review)),
+    timer: timers,
+    save: {
+      exercise: row => request('save', { table: 'exercises', row }),
+      interaction: row => request('save', { table: 'interactions', row }),
+    },
+    ui: {
+      html: (html, actions) => toFrame({ t: 'html', html, actions: actions || [] }),
+      md: async (text, actions) => toFrame({ t: 'html', html: await md(text), actions: actions || [] }),
+      loading: text => toFrame({ t: 'loading', text }),
+      ask: async (text, actions) => { toFrame({ t: 'html', html: await md(text), actions }); const m = await waitFor('action'); return m.id; },
+    },
+  };
+
+  async function boot(m) {
+    info = Object.assign(info, { courseId: m.courseId, lessonId: m.lessonId, courseName: m.courseName, lessonName: m.lessonName }, m.progress || {});
+    EM.info = info;
+    try {
+      /* le script de la leçon est encapsulé dans une IIFE : (course, lesson, EM) */
+      const fn = new Function('course', 'lesson', 'EM', 'return (async function (course, lesson, EM) {\n' + m.script + '\n})(course, lesson, EM);');
+      await fn(m.courseName, m.lessonName, EM);
+      if (!hasRendered) {
+        toFrame({ t: 'html', html: '<h2>Leçon vide</h2><p>Ce script s’est terminé sans afficher de contenu. Modifiez la leçon et appelez <code>EM.lesson(...)</code> ou <code>EM.ui.html(...)</code> pour afficher son contenu.</p>', actions: [] });
+      }
+    } catch (e) { fail(e); }
+  }
+}
+
+/* ---------- Document de l'iframe ---------- */
+const IFRAME_CSS = `
+:root{--bg:#f6f7fb;--surface:#fff;--surface-2:#f0f2f8;--border:#e3e6ee;--fg:#0f172a;--muted:#64748b;--accent:#4f46e5;--accent-fg:#fff;--accent-soft:#eceeff;--ok:#059669;--ok-soft:#e6f7f0;--bad:#dc2626;--bad-soft:#fdecec;--warn:#d97706;--warn-soft:#fff4e0}
+.dark{--bg:#0a0e17;--surface:#111827;--surface-2:#182033;--border:#222c3f;--fg:#e8ecf4;--muted:#8b97ad;--accent:#818cf8;--accent-fg:#0b1020;--accent-soft:#1c2142;--ok:#34d399;--ok-soft:#0f2a24;--bad:#f87171;--bad-soft:#2f1517;--warn:#fbbf24;--warn-soft:#2e2410}
+*{box-sizing:border-box;margin:0}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--fg);font-family:Inter,ui-sans-serif,system-ui,sans-serif;transition:background .3s,color .3s;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+#app{min-height:100vh}
+.view-in{animation:viewIn .35s ease both}
+@keyframes viewIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.center-box{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;color:var(--muted);font-size:.9rem}
+.spinner{width:2rem;height:2rem;border-radius:99px;border:3px solid var(--border);border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.page{max-width:50rem;margin:0 auto;padding:1.5rem 1.25rem 3rem}
+.actions{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:1.5rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;border-radius:.95rem;padding:.8rem 1.3rem;font:600 .92rem Inter,sans-serif;cursor:pointer;border:1px solid transparent;transition:transform .15s,background .2s,box-shadow .2s,opacity .2s}
+.btn:active{transform:scale(.96)}.btn:disabled{opacity:.4;pointer-events:none}
+.btn-primary{background:var(--accent);color:var(--accent-fg);box-shadow:0 10px 22px -12px var(--accent)}.btn-primary:hover{filter:brightness(1.07)}
+.btn-ok{background:var(--ok);color:#fff;box-shadow:0 10px 22px -12px var(--ok)}.btn-ok:hover{filter:brightness(1.07)}
+.btn-ghost{background:transparent;color:var(--fg)}.btn-ghost:hover{background:var(--surface-2)}
+.btn-outline{background:transparent;border-color:var(--border);color:var(--fg)}.btn-outline:hover{background:var(--surface-2)}
+.btn-sm{padding:.5rem .85rem;font-size:.8rem}
+.icon-btn{width:2.2rem;height:2.2rem;border-radius:.7rem;border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:1rem}.icon-btn:hover{background:var(--surface-2);color:var(--fg)}
+.prose{line-height:1.75;font-size:1.05rem}
+.prose>*:first-child{margin-top:0}
+.prose h1{font-size:clamp(2rem,5.5vw,3.4rem);font-weight:800;letter-spacing:-.035em;line-height:1.08;margin:0 0 1rem}
+.prose h2{font-size:clamp(1.5rem,3.6vw,2.2rem);font-weight:700;letter-spacing:-.02em;line-height:1.2;margin:1.4rem 0 .6rem}
+.prose h3{font-size:1.25rem;font-weight:700;margin:1.2rem 0 .4rem}
+.prose h4{font-weight:700;margin:1rem 0 .3rem}
+.prose p{margin:.75rem 0}.prose strong{font-weight:700}
+.prose ul,.prose ol{padding-left:1.5rem;margin:.75rem 0}.prose li{margin:.35rem 0}
+.prose code{font-family:'JetBrains Mono',monospace;background:var(--surface-2);padding:.1rem .4rem;border-radius:.4rem;font-size:.88em}
+.prose pre{background:var(--surface-2);border:1px solid var(--border);border-radius:1rem;padding:1rem;overflow:auto;margin:1rem 0}.prose pre code{background:none;padding:0}
+.prose table{border-collapse:collapse;margin:1.1rem 0;max-width:100%;display:block;overflow-x:auto}
+.prose th,.prose td{border:1px solid var(--border);padding:.5rem 1rem;text-align:center}.prose th{background:var(--surface-2);font-weight:700}
+.prose blockquote{border-left:3px solid var(--accent);padding:.2rem 1rem;color:var(--muted);margin:1rem 0}
+.prose hr{border:0;border-top:1px solid var(--border);margin:1.5rem 0}
+.prose .katex{font-size:1.12em}
+.prose .katex-display{margin:1.2rem 0;overflow-x:auto;overflow-y:hidden;padding:.3rem 0}
+.callout{border-radius:1.1rem;padding:1rem 1.3rem;margin:1.2rem 0;border:1px solid var(--border);background:var(--surface-2)}
+.callout p{margin:.4rem 0}
+.callout-title{font-weight:700;text-transform:uppercase;letter-spacing:.07em;font-size:.72em;margin:0 0 .35rem!important;opacity:.9}
+.callout-def{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 35%,transparent)}.callout-def .callout-title{color:var(--accent)}
+.callout-ex{background:var(--ok-soft);border-color:color-mix(in srgb,var(--ok) 35%,transparent)}.callout-ex .callout-title{color:var(--ok)}
+.callout-warn{background:var(--warn-soft);border-color:color-mix(in srgb,var(--warn) 40%,transparent)}.callout-warn .callout-title{color:var(--warn)}
+/* slides */
+.slides{display:flex;flex-direction:column;min-height:100vh;max-width:58rem;margin:0 auto;padding:1rem 1.25rem 1.5rem}
+.slides-top{display:flex;align-items:center;gap:.9rem;height:2.4rem}
+.slides-bar{flex:1;height:.4rem;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.slides-bar i{display:block;height:100%;border-radius:99px;background:var(--accent);transition:width .4s ease}
+.slides-count{font-size:.78rem;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.slides-stage{flex:1;display:flex;align-items:center;padding:1.5rem 0}
+.slide{width:100%;font-size:clamp(1.15rem,2.3vw,1.55rem)}
+.slide.from-right{animation:inR .4s cubic-bezier(.2,.8,.2,1) both}.slide.from-left{animation:inL .4s cubic-bezier(.2,.8,.2,1) both}
+@keyframes inR{from{opacity:0;transform:translateX(34px)}to{opacity:1;transform:none}}
+@keyframes inL{from{opacity:0;transform:translateX(-34px)}to{opacity:1;transform:none}}
+.slides-nav{display:flex;justify-content:space-between;align-items:center;gap:.7rem;flex-wrap:wrap}
+.nav-group{display:flex;gap:.6rem;flex-wrap:wrap;margin-left:auto}
+/* exercices */
+.ex-top{display:flex;align-items:center;flex-wrap:wrap;gap:.5rem;margin-bottom:.8rem}.grow{flex:1}
+.chip{font-size:.74rem;font-weight:600;padding:.3rem .7rem;border-radius:99px;background:var(--surface-2);color:var(--muted)}
+.chip-accent{background:var(--accent-soft);color:var(--accent)}.chip-ok{background:var(--ok-soft);color:var(--ok)}
+.ex-prog{height:.3rem;background:var(--surface-2);border-radius:99px;overflow:hidden;margin-bottom:1.1rem}.ex-prog i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .4s}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:1.4rem;padding:1.4rem 1.5rem;margin-bottom:1rem;box-shadow:0 12px 30px -22px rgba(15,23,42,.45)}
+.card.prose{font-size:1.2rem}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem}
+@media(max-width:560px){.choices{grid-template-columns:1fr}}
+.choice{display:flex;align-items:center;gap:.9rem;text-align:left;padding:1rem 1.1rem;border-radius:1.1rem;border:1.5px solid var(--border);background:var(--surface);color:var(--fg);font:500 1.1rem Inter,sans-serif;cursor:pointer;transition:transform .18s,border-color .2s,background .2s,box-shadow .2s,opacity .25s;animation:viewIn .35s ease both}
+.choice:hover:not(:disabled){transform:translateY(-2px);border-color:var(--accent);box-shadow:0 14px 26px -18px var(--accent)}
+.choice:active:not(:disabled){transform:scale(.98)}
+.choice .letter{width:2rem;height:2rem;border-radius:.65rem;background:var(--surface-2);display:grid;place-items:center;font:700 .85rem Inter,sans-serif;color:var(--muted);flex-shrink:0;transition:all .2s}
+.choice.picked{border-color:var(--accent);background:var(--accent-soft)}
+.choice.is-correct{border-color:var(--ok);background:var(--ok-soft)}.choice.is-correct .letter{background:var(--ok);color:#fff}
+.choice.is-wrong{border-color:var(--bad);background:var(--bad-soft)}.choice.is-wrong .letter{background:var(--bad);color:#fff}
+.choice.dim{opacity:.5}.choice:disabled{cursor:default}
+.feedback{display:flex;align-items:center;gap:.9rem;padding:.9rem 1.1rem;border-radius:1.1rem;margin-bottom:1rem;animation:viewIn .3s ease both}
+.feedback b{width:2.2rem;height:2.2rem;border-radius:99px;display:grid;place-items:center;color:#fff;font-size:1rem}
+.feedback strong{display:block;font-size:.95rem}.feedback span{font-size:.8rem;color:var(--muted)}
+.feedback.correct{background:var(--ok-soft)}.feedback.correct b{background:var(--ok)}
+.feedback.wrong{background:var(--bad-soft)}.feedback.wrong b{background:var(--bad)}
+.feedback.timeout{background:var(--warn-soft)}.feedback.timeout b{background:var(--warn)}
+.steps h4{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.8rem}
+.step{display:flex;gap:.9rem;padding:.55rem 0;animation:viewIn .4s ease both}
+.step .n{width:1.7rem;height:1.7rem;border-radius:99px;background:var(--accent-soft);color:var(--accent);font:700 .78rem Inter,sans-serif;display:grid;place-items:center;flex-shrink:0;margin-top:.2rem}
+.step .prose{font-size:1rem;line-height:1.7}.step .prose p{margin:0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));gap:.8rem;margin:1.3rem 0}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:1.2rem;padding:1.1rem 1.2rem}
+.stat b{display:block;font-size:1.9rem;font-weight:800;letter-spacing:-.03em;color:var(--accent)}.stat span{font-size:.78rem;color:var(--muted)}
+.ftoast{position:fixed;left:50%;bottom:1.4rem;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:.65rem 1.1rem;border-radius:99px;font-size:.84rem;font-weight:500;box-shadow:0 14px 30px -12px rgba(0,0,0,.5);animation:viewIn .3s ease both;z-index:10}
+.ftoast.out{opacity:0;transition:opacity .3s}
+`;
+function buildIframeDoc() {
+  const dark = document.documentElement.classList.contains('dark');
+  return '<!doctype html><html' + (dark ? ' class="dark"' : '') + '><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+    + '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">'
+    + '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">'
+    + '<style>' + IFRAME_CSS + '</style></head><body><div id="app"></div><script>(' + iframeRuntime.toString() + ')();<\/script></body></html>';
+}
+let _workerUrl = null;
+const workerUrl = () => _workerUrl || (_workerUrl = URL.createObjectURL(new Blob(['(' + workerRuntime.toString() + ')();'], { type: 'text/javascript' })));
+
+/* ---------- état ---------- */
+const state = {
+  courses: [], lessons: [], progress: new Map(),
+  expanded: new Set(JSON.parse(localStorage.getItem('em-expanded') || '[]')),
+  query: '', tabs: new Map(), activeTab: null,
+};
+const saveExpanded = () => localStorage.setItem('em-expanded', JSON.stringify([...state.expanded]));
+async function loadState() {
+  const [c, l, p] = await Promise.all([DB.all('courses'), DB.all('lessons'), DB.all('progress')]);
+  state.courses = c.sort((a, b) => a.id - b.id);
+  state.lessons = l.sort((a, b) => a.id - b.id);
+  state.progress = new Map(p.map(x => [x.lessonId, x]));
+}
+
+/* ---------- arbre des cours ---------- */
+function renderTree() {
+  const q = norm(state.query.trim());
+  let html = '';
+  for (const c of state.courses) {
+    const ls = state.lessons.filter(l => l.courseId === c.id);
+    const cMatch = !q || norm(c.name).includes(q);
+    const shown = q ? (cMatch ? ls : ls.filter(l => norm(l.name).includes(q))) : ls;
+    if (q && !cMatch && !shown.length) continue;
+    const open = q ? true : state.expanded.has(c.id);
+    html += `<div class="course mb-1" data-course="${c.id}">
+      <div class="course-row group" data-act="toggle">
+        <span class="chev ${open ? 'open' : ''}">${icon('chevron')}</span>
+        <span style="color:var(--accent)">${icon('folder')}</span>
+        <span class="flex-1 truncate">${esc(c.name)}</span>
+        <span class="badge">${ls.length}</span>
+        <span class="row-actions">
+          <button class="icon-btn hov danger" data-act="del-course" title="Supprimer le cours">${icon('trash')}</button>
+          <button class="icon-btn" data-act="add-lesson" title="Ajouter une leçon" style="color:var(--accent)">${icon('plus')}</button>
+        </span>
+      </div>
+      <div class="course-collapse ${open ? 'open' : ''}"><div class="collapse-inner">
+        ${shown.length ? shown.map(l => {
+          const done = state.progress.get(l.id)?.understood;
+          return `<div class="lesson-row group ${state.activeTab === l.id ? 'active' : ''}" data-act="open" data-lesson="${l.id}">
+            <span class="dot ${done ? 'ok' : ''}">${done ? icon('check') : ''}</span>
+            <span class="flex-1 truncate">${esc(l.name)}</span>
+            <span class="row-actions">
+              <button class="icon-btn hov" data-act="edit-lesson" title="Modifier">${icon('edit')}</button>
+              <button class="icon-btn hov danger" data-act="del-lesson" title="Supprimer">${icon('trash')}</button>
+            </span></div>`;
+        }).join('') : `<div class="text-xs muted py-2" style="margin-left:2.4rem">${q ? 'Aucune leçon trouvée' : 'Aucune leçon — cliquez sur +'}</div>`}
+      </div></div></div>`;
+  }
+  $('#tree').innerHTML = html || `<div class="text-center muted text-sm px-4 py-10 fade-in">${q ? 'Aucun résultat.' : 'Aucun cours pour le moment.<br>Cliquez sur « Ajouter un cours ».'}</div>`;
+  $('#empty-text').textContent = state.courses.length
+    ? 'Choisissez une leçon dans le menu : elle s\'ouvrira dans un onglet.'
+    : 'Créez un cours, ajoutez-y des leçons, puis ouvrez une leçon pour la voir apparaître dans un onglet.';
+}
+
+$('#tree').addEventListener('click', async e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const act = el.dataset.act;
+  const courseEl = el.closest('.course'); const cid = courseEl && +courseEl.dataset.course;
+  const lid = el.closest('[data-lesson]') && +el.closest('[data-lesson]').dataset.lesson;
+  if (act === 'toggle') {
+    if (state.query) return;
+    const open = !state.expanded.has(cid);
+    open ? state.expanded.add(cid) : state.expanded.delete(cid);
+    saveExpanded();
+    $('.course-collapse', courseEl).classList.toggle('open', open);
+    $('.chev', courseEl).classList.toggle('open', open);
+  } else if (act === 'add-lesson') lessonModal({ courseId: cid });
+  else if (act === 'edit-lesson') lessonModal({ lesson: state.lessons.find(l => l.id === lid) });
+  else if (act === 'open') { openLesson(lid); if (innerWidth < 768) toggleSidebar(false); }
+  else if (act === 'del-lesson') {
+    const l = state.lessons.find(x => x.id === lid);
+    if (await confirmDialog({ title: 'Supprimer la leçon ?', message: `« ${esc(l.name)} » et sa progression seront supprimées. L'historique des résultats est conservé.`, confirmLabel: 'Supprimer' })) {
+      closeTab(lid); await DB.deleteLesson(lid); await loadState(); renderTree(); toast('Leçon supprimée');
+    }
+  } else if (act === 'del-course') {
+    const c = state.courses.find(x => x.id === cid); const ls = state.lessons.filter(l => l.courseId === cid);
+    if (await confirmDialog({ title: 'Supprimer le cours ?', message: `« ${esc(c.name)} » et ses ${ls.length} leçon(s) seront supprimés. L'historique des résultats est conservé.`, confirmLabel: 'Supprimer' })) {
+      ls.forEach(l => closeTab(l.id)); await DB.deleteCourse(cid, ls.map(l => l.id)); await loadState(); renderTree(); toast('Cours supprimé');
+    }
+  }
+});
+$('#search').addEventListener('input', e => { state.query = e.target.value; renderTree(); });
+
+/* ---------- modals ---------- */
+function openModal({ title, subtitle = '', body, submitLabel = 'Valider', cancelLabel = 'Annuler', wide = false, danger = false, noActions = false, onSubmit, onClose }) {
+  const back = h('div', 'modal-back');
+  back.innerHTML = `<form class="modal ${wide ? 'modal-wide' : ''}" novalidate>
+    <div class="modal-head"><div><h3>${title}</h3>${subtitle ? `<p>${subtitle}</p>` : ''}</div><button type="button" class="icon-btn" data-close>${icon('x')}</button></div>
+    <div class="modal-body">${body}</div><div class="modal-error" hidden></div>
+    <div class="modal-foot" ${noActions ? 'hidden' : ''}><button type="button" class="btn btn-ghost" data-close>${cancelLabel}</button><button type="submit" class="btn ${danger ? 'btn-danger' : 'btn-primary'}">${submitLabel}</button></div></form>`;
+  document.body.append(back);
+  requestAnimationFrame(() => back.classList.add('show'));
+  const form = $('form', back), errEl = $('.modal-error', back);
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  const ctl = { el: back, form, error(m) { errEl.textContent = m; errEl.hidden = !m; }, close };
+  function close() { document.removeEventListener('keydown', onKey); back.classList.remove('show'); setTimeout(() => back.remove(), 220); onClose && onClose(); }
+  document.addEventListener('keydown', onKey);
+  $$('[data-close]', back).forEach(b => b.addEventListener('click', close));
+  back.addEventListener('mousedown', e => { if (e.target === back) close(); });
+  form.addEventListener('submit', async e => {
+    e.preventDefault(); ctl.error('');
+    try { const r = await (onSubmit && onSubmit(form, ctl)); if (r !== false) close(); } catch (err) { ctl.error(err.message || String(err)); }
+  });
+  setTimeout(() => { const f = $('input,textarea,select', form); f && f.focus(); }, 60);
+  return ctl;
+}
+function confirmDialog({ title, message, confirmLabel = 'Confirmer' }) {
+  return new Promise(res => {
+    let done = false;
+    openModal({ title, body: `<p class="text-sm muted leading-relaxed">${message}</p>`, submitLabel: confirmLabel, danger: true,
+      onSubmit: () => { done = true; res(true); }, onClose: () => { if (!done) res(false); } });
+  });
+}
+
+$('#btn-add-course').addEventListener('click', () => {
+  openModal({
+    title: 'Nouveau cours', subtitle: 'Un cours est un dossier qui regroupe plusieurs leçons.', submitLabel: 'Créer le cours',
+    body: `<label class="field"><span>Nom du cours</span><input name="name" class="input" placeholder="Ex. Logique mathématique" autocomplete="off"></label>`,
+    async onSubmit(form) {
+      const name = form.name.value.trim();
+      if (!name) throw new Error('Saisissez le nom du cours.');
+      if (state.courses.some(c => norm(c.name) === norm(name))) throw new Error('Un cours portant ce nom existe déjà.');
+      const id = await DB.add('courses', { name, createdAt: Date.now() });
+      state.expanded.add(id); saveExpanded();
+      await loadState(); renderTree(); toast('Cours créé', 'ok');
+    },
+  });
+});
+
+const SAMPLE_SCRIPT = String.raw`// Exemple : addition de fractions
+// Variables disponibles : course (nom du cours), lesson (nom de la leçon), EM (API du système)
+EM.lesson({
+  slides: [
+    "# C'est quoi une fraction ?\n\nUne **fraction** représente une partie d'un tout.",
+    ":::def Définition\nUne fraction s'écrit $\\frac{a}{b}$ avec $b \\neq 0$.\n\n- $a$ est le **numérateur**\n- $b$ est le **dénominateur**\n:::",
+    "## Exemple\n\nSi une pizza est coupée en 4 parts et que l'on en mange 3, on a mangé $$\\frac{3}{4}$$ de la pizza.",
+    "## Additionner deux fractions\n\nAvec le même dénominateur :\n\n$$\\frac{a}{c}+\\frac{b}{c}=\\frac{a+b}{c}$$"
+  ],
+  rounds: 5,
+  exercises: [{
+    type: "Addition (même dénominateur)",
+    timeout: 45,
+    generate(u) {
+      const c = u.randInt(3, 12), a = u.randInt(1, c - 2), b = u.randInt(1, c - 1 - a);
+      const n = a + b, g = u.gcd(n, c);
+      const ans = u.frac(n / g, c / g);
+      return {
+        question: "Calcule : $\\frac{" + a + "}{" + c + "}+\\frac{" + b + "}{" + c + "}$",
+        answer: "$" + ans + "$",
+        distractors: ["$" + u.frac(n, 2 * c) + "$", "$" + u.frac(Math.abs(a - b), c) + "$", "$" + u.frac(n + 1, c) + "$"],
+        steps: [
+          "On additionne les numérateurs : $" + a + "+" + b + "=" + n + "$",
+          "Le dénominateur ne change pas : $" + c + "$",
+          "On simplifie si possible : $" + ans + "$"
+        ],
+        data: { a: a, b: b, c: c }
+      };
+    }
+  }]
+});
+`;
+
+function lessonModal({ courseId, lesson }) {
+  if (!state.courses.length) return toast('Créez d\'abord un cours.', 'error');
+  const editing = !!lesson; const cid = editing ? lesson.courseId : courseId;
+  const ctl = openModal({
+    title: editing ? 'Modifier la leçon' : 'Nouvelle leçon', wide: true,
+    subtitle: 'Le script est enregistré dans IndexedDB puis exécuté dans un Web Worker à l\'ouverture de la leçon.',
+    submitLabel: editing ? 'Enregistrer' : 'Ajouter la leçon',
+    body: `<div class="grid gap-x-4 sm:grid-cols-2">
+      <label class="field"><span>Cours</span><select name="course" class="input">${state.courses.map(c => `<option value="${c.id}" ${c.id === cid ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></label>
+      <label class="field"><span>Nom de la leçon</span><input name="name" class="input" placeholder="Ex. Les fractions" autocomplete="off" value="${esc(editing ? lesson.name : '')}"></label></div>
+      <label class="field" style="margin-bottom:.5rem"><span>Script JavaScript de la leçon</span><textarea name="script" class="input mono" rows="14" spellcheck="false" placeholder="// Collez ici le script de la leçon…">${esc(editing ? lesson.script : '')}</textarea></label>
+      <div class="hint">Le script est encapsulé dans une IIFE recevant <code>course</code>, <code>lesson</code> et <code>EM</code>.
+        <button type="button" class="link" data-sample>Insérer un exemple</button> · <button type="button" class="link" data-api>Guide de l'API</button></div>`,
+    async onSubmit(form) {
+      const name = form.name.value.trim(), script = form.script.value, courseId = +form.course.value;
+      if (!name) throw new Error('Saisissez le nom de la leçon.');
+      if (!script.trim()) throw new Error('Collez le script de la leçon.');
+      try { new Function('course', 'lesson', 'EM', 'return (async function (course, lesson, EM) {\n' + script + '\n})(course, lesson, EM);'); }
+      catch (e) { throw new Error('Erreur de syntaxe dans le script : ' + e.message); }
+      if (state.lessons.some(l => l.courseId === courseId && norm(l.name) === norm(name) && (!editing || l.id !== lesson.id))) throw new Error('Une leçon portant ce nom existe déjà dans ce cours.');
+      if (editing) await DB.put('lessons', { ...lesson, courseId, name, script, updatedAt: Date.now() });
+      else await DB.add('lessons', { courseId, name, script, createdAt: Date.now() });
+      state.expanded.add(courseId); saveExpanded();
+      await loadState(); renderTree();
+      if (editing && state.tabs.has(lesson.id)) { refreshTabTitle(lesson.id); startTab(state.tabs.get(lesson.id)); }
+      toast(editing ? 'Leçon mise à jour' : 'Leçon ajoutée', 'ok');
+    },
+  });
+  $('[data-sample]', ctl.el).onclick = () => {
+    const ta = ctl.form.script;
+    if (ta.value.trim() && ta.value !== SAMPLE_SCRIPT && !confirm('Remplacer le script actuel par l\'exemple ?')) return;
+    ta.value = SAMPLE_SCRIPT;
+    if (!ctl.form.name.value.trim()) ctl.form.name.value = 'Addition de fractions';
+  };
+  $('[data-api]', ctl.el).onclick = apiGuide;
+}
+
+function apiGuide() {
+  openModal({
+    title: 'Guide de l\'API des leçons', wide: true, noActions: true,
+    subtitle: 'Ce que le script d\'une leçon peut utiliser.',
+    body: `<div class="doc">
+      <h4>Structure</h4>
+      <p>Le script est enveloppé dans une IIFE asynchrone <code>(async function (course, lesson, EM) { … })</code> exécutée dans un Web Worker. <code>course</code> et <code>lesson</code> sont les noms du cours et de la leçon ; <code>EM.info</code> contient aussi les identifiants et l'état « compris ».</p>
+      <h4>EM.lesson(config)</h4>
+<pre>EM.lesson({
+  slides: ["# Titre en grand", ":::def Définition\\n…\\n:::"],  // markdown
+  rounds: 10,                      // exercices par série
+  exercises: [{
+    type: "Négation",              // type enregistré
+    timeout: 60,                   // secondes (facultatif)
+    generate(u) {                  // u = EM.util
+      return {
+        question: "…",             // markdown + maths
+        answer: "$x$",             // bonne réponse
+        distractors: ["…","…","…"],// mauvaises réponses
+        steps: ["étape 1", "étape 2"],
+        data: { a: 1 }             // exporté dans Excel
+      };
+    }
+  }]
+});</pre>
+      <ul><li>Première ouverture : slides → boutons « J'ai compris » / « Je n'ai pas compris ». Après « J'ai compris » (sauvegardé), la leçon passe directement aux exercices.</li>
+      <li>Alternative : <code>choices: [...]</code> + <code>correctIndex</code> à la place de <code>answer</code> / <code>distractors</code>.</li></ul>
+      <h4>Markdown et maths</h4>
+      <p><code>$x^2$</code> en ligne, <code>$$\\\\sum_{i=1}^{n} i$$</code> en bloc. Encadrés : <code>:::def Titre … :::</code>, <code>:::ex</code>, <code>:::note</code>, <code>:::warn</code>.</p>
+      <h4>Autres fonctions</h4>
+<pre>await EM.md(texte, inline?)            // markdown → HTML (main process)
+EM.ui.html(html, actions?) / EM.ui.md(md, actions?)
+await EM.ui.ask(md, [{id, label, primary}])   // retourne l'id cliqué
+await EM.slides([...], {review})        // slides seuls
+const id = EM.timer.start(30, "Calcul", () => {…}); EM.timer.stop(id)
+await EM.save.exercise({...}) / EM.save.interaction({...})
+EM.util: randInt, pick, shuffle, gcd, lcm, frac, simplify</pre>
+      <h4>Données enregistrées</h4>
+      <p>Table <code>interactions</code> : compris / non compris, minutes prises, reprises. Table <code>exercises</code> : type, énoncé, données, réponse, correct, temps. Le bouton « Exporter » produit un classeur Excel.</p></div>`,
+  });
+}
+$('#btn-help').addEventListener('click', apiGuide);
+
+/* ---------- onglets : 1 leçon = 1 iframe + 1 web worker ---------- */
+function openLesson(id) {
+  if (state.tabs.has(id)) return activateTab(id);
+  const lesson = state.lessons.find(l => l.id === id); if (!lesson) return;
+  const panel = h('section', 'absolute inset-0 hidden flex-col');
+  panel.innerHTML = `
+    <div class="surface bd-b flex items-center gap-2 px-4 h-11 shrink-0">
+      <div class="text-xs muted truncate flex-1" data-crumb></div>
+      <button class="icon-btn" data-act="reload" title="Relancer la leçon">${icon('refresh')}</button>
+      <button class="icon-btn" data-act="reset" title="Réinitialiser ma progression (revoir la leçon)">${icon('undo')}</button>
+    </div>
+    <div class="timer-wrap surface bd-b" data-timer><div class="flex items-center gap-3 px-4 h-full">
+      <span class="text-xs font-semibold muted shrink-0" data-tlabel>⏱</span>
+      <div class="timer-track"><div class="timer-bar" data-tbar></div></div>
+      <span class="text-xs font-bold tabular-nums w-12 text-right" data-ttext></span></div></div>
+    <div class="flex-1 min-h-0" data-frame></div>`;
+  $('#panels').append(panel);
+  const tab = { id, panel, worker: null, timers: new Map(), frameHost: $('[data-frame]', panel), timerWrap: $('[data-timer]', panel) };
+  state.tabs.set(id, tab);
+  panel.addEventListener('click', async e => {
+    const a = e.target.closest('[data-act]'); if (!a) return;
+    if (a.dataset.act === 'reload') { startTab(tab); toast('Leçon relancée'); }
+    if (a.dataset.act === 'reset') {
+      if (await confirmDialog({ title: 'Réinitialiser la progression ?', message: 'La leçon sera de nouveau proposée sous forme de slides. L\'historique des résultats est conservé.', confirmLabel: 'Réinitialiser' })) {
+        await DB.del('progress', id); state.progress.delete(id); renderTree(); startTab(tab);
+      }
+    }
+  });
+  refreshTabTitle(id);
+  startTab(tab);
+  activateTab(id);
+}
+function refreshTabTitle(id) {
+  const tab = state.tabs.get(id); if (!tab) return;
+  const l = state.lessons.find(x => x.id === id), c = state.courses.find(x => x.id === l.courseId);
+  $('[data-crumb]', tab.panel).innerHTML = `${esc(c.name)} <span style="opacity:.5">›</span> <strong style="color:var(--fg)">${esc(l.name)}</strong>`;
+  renderTabs();
+}
+function teardownRuntime(tab) {
+  if (tab.worker) { tab.worker.terminate(); tab.worker = null; }
+  tab.timers.forEach(t => clearInterval(t.iv)); tab.timers.clear();
+  tab.timerWrap.classList.remove('on');
+}
+function startTab(tab) {
+  teardownRuntime(tab);
+  const lesson = state.lessons.find(l => l.id === tab.id); const course = state.courses.find(c => c.id === lesson.courseId);
+  const iframe = h('iframe', 'w-full h-full border-0');
+  iframe.setAttribute('sandbox', 'allow-scripts'); iframe.title = lesson.name;
+  iframe.style.background = 'transparent';
+  const ch = new MessageChannel();           // canal direct worker <-> iframe
+  iframe.addEventListener('load', () => iframe.contentWindow.postMessage({ type: 'em-port' }, '*', [ch.port2]), { once: true });
+  iframe.srcdoc = buildIframeDoc();
+  tab.iframe = iframe;
+  tab.frameHost.replaceChildren(iframe);
+
+  let worker;
+  try { worker = new Worker(workerUrl()); }
+  catch (e) {
+    iframe.contentWindow.postMessage({ type: 'em-runtime-error', message: e.message || String(e) }, '*');
+    toast('Impossible de démarrer le moteur de leçon : ' + (e.message || e), 'error');
+    return;
+  }
+  tab.worker = worker;
+  worker.onmessage = e => onWorkerMsg(tab, worker, e.data);
+  worker.onerror = e => {
+    e.preventDefault();
+    const message = e.message || 'Erreur JavaScript dans le moteur de leçon.';
+    iframe.contentWindow.postMessage({ type: 'em-runtime-error', message }, '*');
+    toast('Erreur dans la leçon : ' + message, 'error');
+  };
+  worker.postMessage({
+    type: 'init', port: ch.port1, courseId: course.id, lessonId: lesson.id, courseName: course.name, lessonName: lesson.name, script: lesson.script,
+    progress: state.progress.get(lesson.id) ? { understood: !!state.progress.get(lesson.id).understood, understoodAt: state.progress.get(lesson.id).understoodAt, minutes: state.progress.get(lesson.id).minutes } : {},
+  }, [ch.port1]);
+}
+function closeTab(id) {
+  const tab = state.tabs.get(id); if (!tab) return;
+  teardownRuntime(tab); tab.panel.remove(); state.tabs.delete(id);
+  if (state.activeTab === id) { const ids = [...state.tabs.keys()]; state.activeTab = ids.length ? ids[ids.length - 1] : null; }
+  activateTab(state.activeTab);
+}
+function activateTab(id) {
+  state.activeTab = id ?? null;
+  state.tabs.forEach((t, k) => { const on = k === id; t.panel.classList.toggle('hidden', !on); t.panel.classList.toggle('flex', on); });
+  $('#empty').classList.toggle('hidden', state.tabs.size > 0);
+  renderTabs(); renderTree();
+}
+function renderTabs() {
+  $('#tabs').innerHTML = [...state.tabs.keys()].map(id => {
+    const l = state.lessons.find(x => x.id === id); if (!l) return '';
+    return `<div class="tab ${state.activeTab === id ? 'active' : ''}" data-tab="${id}"><span class="truncate" style="max-width:11rem">${esc(l.name)}</span><span class="x" data-close>${icon('x')}</span></div>`;
+  }).join('');
+}
+$('#tabs').addEventListener('click', e => {
+  const t = e.target.closest('[data-tab]'); if (!t) return;
+  const id = +t.dataset.tab;
+  e.target.closest('[data-close]') ? closeTab(id) : activateTab(id);
+});
+$('#tabs').addEventListener('auxclick', e => { const t = e.target.closest('[data-tab]'); if (t && e.button === 1) closeTab(+t.dataset.tab); });
+
+/* ---------- main process <-> web worker ---------- */
+async function onWorkerMsg(tab, worker, m) {
+  const reply = (result, error) => worker.postMessage({ type: 'reply', id: m.id, result, error });
+  const lesson = state.lessons.find(l => l.id === tab.id); if (!lesson) return;
+  const course = state.courses.find(c => c.id === lesson.courseId);
+  const meta = { courseId: course.id, courseName: course.name, lessonId: lesson.id, lessonName: lesson.name, createdAt: Date.now() };
+  try {
+    switch (m.type) {
+      case 'md': return reply(renderMarkdown(m.text, m.inline));
+      case 'save': {
+        if (!['exercises', 'interactions'].includes(m.table)) throw new Error('Table inconnue : ' + m.table);
+        await DB.add(m.table, { ...m.row, ...meta }); return reply(true);
+      }
+      case 'understood': {
+        const minutes = +(m.ms / 60000).toFixed(2);
+        await DB.add('interactions', { event: 'understood', minutes, seconds: Math.round(m.ms / 1000), retries: m.retries || 0, ...meta });
+        const p = { lessonId: lesson.id, understood: true, understoodAt: Date.now(), minutes };
+        await DB.put('progress', p); state.progress.set(lesson.id, p); renderTree(); return reply(true);
+      }
+      case 'timer:start': return startTimer(tab, m);
+      case 'timer:stop': return stopTimer(tab, m.timerId);
+      case 'error': return toast('Erreur dans la leçon : ' + m.message, 'error');
+    }
+  } catch (err) { if (m.id) reply(null, err.message || String(err)); else toast(String(err), 'error'); }
+}
+
+/* ---------- composant : compteur / barre de progression ---------- */
+function startTimer(tab, { timerId, seconds, label }) {
+  stopTimer(tab, timerId);
+  const bar = $('[data-tbar]', tab.panel), txt = $('[data-ttext]', tab.panel);
+  $('[data-tlabel]', tab.panel).textContent = '⏱ ' + (label || 'Temps');
+  const t = { start: performance.now(), dur: seconds * 1000 };
+  const tick = () => {
+    const left = Math.max(0, t.dur - (performance.now() - t.start));
+    const r = left / t.dur;
+    bar.style.transform = `scaleX(${r})`;
+    bar.classList.toggle('low', r < .4 && r >= .2); bar.classList.toggle('crit', r < .2);
+    const s = Math.ceil(left / 1000); txt.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    if (left <= 0) { clearInterval(t.iv); tab.timers.delete(timerId); if (!tab.timers.size) tab.timerWrap.classList.remove('on'); tab.worker && tab.worker.postMessage({ type: 'timer:end', timerId }); }
+  };
+  bar.style.transition = 'none'; bar.style.transform = 'scaleX(1)'; void bar.offsetWidth; bar.style.transition = '';
+  tab.timerWrap.classList.add('on');
+  t.iv = setInterval(tick, 100); tab.timers.set(timerId, t); tick();
+}
+function stopTimer(tab, timerId) {
+  const t = tab.timers.get(timerId); if (!t) return;
+  clearInterval(t.iv); tab.timers.delete(timerId);
+  if (!tab.timers.size) tab.timerWrap.classList.remove('on');
+}
+
+/* ---------- export Excel ---------- */
+$('#btn-export').addEventListener('click', () => {
+  if (!state.courses.length) return toast('Aucune donnée à exporter pour le moment.');
+  const ctl = openModal({
+    title: 'Exporter les données', subtitle: 'Classeur Excel : leçons, exercices et résumé de performance.', submitLabel: 'Télécharger .xlsx',
+    body: `<label class="field"><span>Cours à exporter</span><select name="scope" class="input"><option value="all">Tous les cours</option>${state.courses.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select></label>`,
+    async onSubmit(form) { await exportXlsx(form.scope.value); },
+  });
+});
+async function exportXlsx(scope) {
+  if (!window.XLSX) throw new Error('La bibliothèque Excel n\'est pas chargée (connexion internet requise).');
+  const [inter, exs] = await Promise.all([DB.all('interactions'), DB.all('exercises')]);
+  const ok = r => scope === 'all' || r.courseId === +scope;
+  const fmt = ts => new Date(ts).toLocaleString('fr-FR');
+  const I = inter.filter(ok).sort((a, b) => a.createdAt - b.createdAt).map(r => ({
+    'Date': fmt(r.createdAt), 'Cours': r.courseName, 'Leçon': r.lessonName,
+    'Événement': r.event === 'understood' ? 'Compris' : 'Non compris',
+    'Minutes': r.minutes ?? +(r.seconds / 60).toFixed(2), 'Secondes': r.seconds, 'Reprises': r.retries ?? 0,
+  }));
+  const E = exs.filter(ok).sort((a, b) => a.createdAt - b.createdAt).map(r => ({
+    'Date': fmt(r.createdAt), 'Cours': r.courseName, 'Leçon': r.lessonName, 'Type d\'exercice': r.exerciseType,
+    'Énoncé': r.question, 'Données': r.data, 'Réponse donnée': r.userAnswer, 'Bonne réponse': r.correctAnswer,
+    'Correct': r.correct ? 'Oui' : 'Non', 'Temps écoulé': r.timedOut ? 'Oui' : 'Non',
+    'Temps (s)': +(r.timeMs / 1000).toFixed(2), 'Limite (s)': r.timeLimit || '',
+  }));
+  const groups = new Map();
+  exs.filter(ok).forEach(r => { const k = r.courseName + '||' + r.lessonName + '||' + r.exerciseType; (groups.get(k) || groups.set(k, []).get(k)).push(r); });
+  const S = [...groups.entries()].map(([k, rows]) => {
+    const [c, l, t] = k.split('||'); const good = rows.filter(r => r.correct);
+    const avg = a => a.length ? +(a.reduce((s, r) => s + r.timeMs, 0) / a.length / 1000).toFixed(2) : '';
+    return { 'Cours': c, 'Leçon': l, 'Type d\'exercice': t, 'Exercices': rows.length, 'Réussis': good.length, 'Taux de réussite (%)': Math.round(good.length / rows.length * 100), 'Temps moyen (s)': avg(rows), 'Temps moyen bonnes réponses (s)': avg(good) };
+  });
+  const wb = XLSX.utils.book_new();
+  const add = (rows, name, headers) => { const ws = rows.length ? XLSX.utils.json_to_sheet(rows) : XLSX.utils.aoa_to_sheet([headers]); ws['!cols'] = (rows.length ? Object.keys(rows[0]) : headers).map(k => ({ wch: Math.min(40, Math.max(12, k.length + 4)) })); XLSX.utils.book_append_sheet(wb, ws, name); };
+  add(S, 'Résumé', ['Cours', 'Leçon', 'Type d\'exercice', 'Exercices', 'Réussis', 'Taux de réussite (%)', 'Temps moyen (s)', 'Temps moyen bonnes réponses (s)']);
+  add(I, 'Leçons', ['Date', 'Cours', 'Leçon', 'Événement', 'Minutes', 'Secondes', 'Reprises']);
+  add(E, 'Exercices', ['Date', 'Cours', 'Leçon', 'Type d\'exercice', 'Énoncé', 'Données', 'Réponse donnée', 'Bonne réponse', 'Correct', 'Temps écoulé', 'Temps (s)', 'Limite (s)']);
+  XLSX.writeFile(wb, 'easymath-' + new Date().toISOString().slice(0, 10) + '.xlsx');
+  toast('Export Excel téléchargé', 'ok');
+}
+
+/* ---------- thème, menu mobile, initialisation ---------- */
+function applyTheme(t) {
+  document.documentElement.classList.toggle('dark', t === 'dark');
+  localStorage.setItem('em-theme', t);
+  $('#btn-theme').innerHTML = icon(t === 'dark' ? 'sun' : 'moon');
+  state.tabs.forEach(tab => tab.iframe && tab.iframe.contentWindow && tab.iframe.contentWindow.postMessage({ type: 'em-theme', theme: t }, '*'));
+}
+$('#btn-theme').addEventListener('click', () => applyTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark'));
+function toggleSidebar(open) {
+  $('#sidebar').classList.toggle('-translate-x-full', !open);
+  $('#scrim').classList.toggle('hidden', !open);
+}
+$('#btn-menu').addEventListener('click', () => toggleSidebar(true));
+$('#scrim').addEventListener('click', () => toggleSidebar(false));
+
+(async function init() {
+  $('#btn-add-course').innerHTML = icon('plus') + ' Ajouter un cours';
+  $('#ico-search').innerHTML = icon('search');
+  $('#btn-menu').innerHTML = icon('menu');
+  $('#btn-export').innerHTML = icon('download') + ' Exporter (Excel)';
+  $('#btn-help').innerHTML = icon('code') + ' API';
+  applyTheme(document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+  try { await DB.open(); await loadState(); }
+  catch (e) { toast('IndexedDB indisponible : ' + e.message, 'error'); }
+  renderTree(); renderTabs();
+})();
+</script>
+</body>
+</html>
