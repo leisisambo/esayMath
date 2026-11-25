@@ -45,6 +45,54 @@
       ]
     },
     {
+      "path": "courses/algebre_lineaire",
+      "name": "Alg\u00e8bre lin\u00e9aire",
+      "lessons": [
+        {
+          "name": "Les vecteurs du plan R²",
+          "path": "courses/algebre_lineaire/vecteurs.js",
+          "url": "courses/algebre_lineaire/vecteurs.js",
+          "keywords": [
+            "vecteur",
+            "composantes",
+            "addition de vecteurs",
+            "multiplication par un scalaire",
+            "combinaison lin\u00e9aire",
+            "R2",
+            "coordonnées",
+            "norme",
+            "distance",
+            "parallélogramme"
+          ]
+        },
+        {
+          "name": "Span et sous-espaces vectoriels",
+          "path": "courses/algebre_lineaire/span_sous_espace.js",
+          "url": "courses/algebre_lineaire/span_sous_espace.js",
+          "keywords": [
+            "span",
+            "sous-espace vectoriel",
+            "combinaison linéaire",
+            "vecteurs générateurs",
+            "déterminant",
+            "stabilité"
+          ]
+        },
+        {
+          "name": "Orthogonalité, angles et projections",
+          "path": "courses/algebre_lineaire/orthogonalite_angle_projection.js",
+          "url": "courses/algebre_lineaire/orthogonalite_angle_projection.js",
+          "keywords": [
+            "produit scalaire",
+            "orthogonalité",
+            "angle entre deux vecteurs",
+            "projection orthogonale",
+            "distance à une droite"
+          ]
+        }
+      ]
+    },
+    {
       "path": "courses/math_logique",
       "name": "Logique math\u00e9matique",
       "lessons": [

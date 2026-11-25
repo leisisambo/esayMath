@@ -293,6 +293,31 @@ function renderMarkdown(src, inline = false) {
   return html;
 }
 
+/* ---------- visuels pédagogiques créés dans le thread principal ---------- */
+const EM_VISUALS = (() => {
+  const clamp = (value, min, max, fallback) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallback;
+  };
+  const label = (value, fallback) => esc(String(value == null ? fallback : value));
+  function plane(options = {}) {
+    const x = clamp(options.x, -4, 4, 3), y = clamp(options.y, -3, 3, 2);
+    const name = label(options.label, 'u'), title = label(options.title, 'Un vecteur dans le plan');
+    const ox = 220, oy = 162, unit = 34, px = ox + x * unit, py = oy - y * unit;
+    let grid = '';
+    for (let i = -5; i <= 5; i++) grid += '<line x1="' + (ox + i * unit) + '" y1="20" x2="' + (ox + i * unit) + '" y2="275" stroke="#e2e8f0"/><text x="' + (ox + i * unit) + '" y="183" text-anchor="middle" fill="#64748b" font-size="11">' + i + '</text>';
+    for (let i = -3; i <= 4; i++) grid += '<line x1="35" y1="' + (oy - i * unit) + '" x2="405" y2="' + (oy - i * unit) + '" stroke="#e2e8f0"/><text x="208" y="' + (oy - i * unit + 4) + '" text-anchor="end" fill="#64748b" font-size="11">' + i + '</text>';
+    return '<figure class="em-visual"><svg viewBox="0 0 440 300" role="img" aria-label="' + title + ' : vecteur ' + name + ' de coordonnées (' + x + ', ' + y + ')"><defs><marker id="em-plane-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#4f46e5"/></marker></defs>' + grid + '<line x1="35" y1="' + oy + '" x2="405" y2="' + oy + '" stroke="#334155" stroke-width="2"/><line x1="' + ox + '" y1="275" x2="' + ox + '" y2="20" stroke="#334155" stroke-width="2"/><text x="410" y="' + (oy - 8) + '" fill="#334155" font-size="14">x</text><text x="' + (ox + 10) + '" y="18" fill="#334155" font-size="14">y</text><line x1="' + ox + '" y1="' + oy + '" x2="' + px + '" y2="' + py + '" stroke="#4f46e5" stroke-width="4" marker-end="url(#em-plane-arrow)"/><circle cx="' + ox + '" cy="' + oy + '" r="4" fill="#334155"/><text x="' + (ox - 10) + '" y="' + (oy + 18) + '" fill="#334155" font-size="13">O</text><text x="' + (px + (x >= 0 ? 10 : -10)) + '" y="' + (py - 10) + '" text-anchor="' + (x >= 0 ? 'start' : 'end') + '" fill="#4338ca" font-size="16" font-weight="700">' + name + ' (' + x + ', ' + y + ')</text></svg><figcaption>' + title + ' : l’abscisse indique le déplacement horizontal et l’ordonnée le déplacement vertical.</figcaption></figure>';
+  }
+  function vectorArrow(options = {}) {
+    const x = clamp(options.x, -5, 5, 3), y = clamp(options.y, -3, 3, -2);
+    const name = label(options.label, 'AB'), title = label(options.title, 'Une flèche représente un vecteur');
+    const ox = 92, oy = 95, unit = 22, px = ox + x * unit, py = oy - y * unit;
+    return '<figure class="em-visual"><svg viewBox="0 0 360 190" role="img" aria-label="' + title + ' : flèche ' + name + ' avec déplacement (' + x + ', ' + y + ')"><defs><marker id="em-arrow-head" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><path d="M0,0 L0,7 L7,3.5 z" fill="#059669"/></marker></defs><line x1="40" y1="' + oy + '" x2="330" y2="' + oy + '" stroke="#cbd5e1" stroke-width="2"/><line x1="' + ox + '" y1="165" x2="' + ox + '" y2="30" stroke="#cbd5e1" stroke-width="2"/><line x1="' + ox + '" y1="' + oy + '" x2="' + px + '" y2="' + py + '" stroke="#059669" stroke-width="5" marker-end="url(#em-arrow-head)"/><circle cx="' + ox + '" cy="' + oy + '" r="5" fill="#334155"/><circle cx="' + px + '" cy="' + py + '" r="5" fill="#059669"/><text x="' + (ox - 14) + '" y="' + (oy + 22) + '" fill="#334155" font-size="14">A</text><text x="' + (px + 9) + '" y="' + (py - 10) + '" fill="#047857" font-size="14" font-weight="700">B</text><text x="' + ((ox + px) / 2 + 8) + '" y="' + ((oy + py) / 2 - 10) + '" fill="#047857" font-size="16" font-weight="700">' + name + '</text></svg><figcaption>' + title + ' : le sens de la flèche va de A vers B.</figcaption></figure>';
+  }
+  return Object.freeze({ plane, vectorArrow });
+})();
+
 /* ---------- Runtime de l'iframe (affichage de la leçon) ---------- */
 function iframeRuntime() {
   const app = document.getElementById('app');
@@ -384,6 +409,7 @@ function iframeRuntime() {
     const page = h('div', 'page');
     const top = h('div', 'ex-top');
     top.append(h('span', 'chip chip-accent', hd.type));
+    if (hd.level) top.append(h('span', 'chip', 'Niveau ' + hd.level));
     top.append(h('span', 'chip', 'Question ' + hd.index + ' / ' + hd.total));
     if (hd.timeout) top.append(h('span', 'chip', '⏱ ' + hd.timeout + ' s'));
     top.append(h('span', 'chip chip-ok', '✓ ' + hd.score));
@@ -461,6 +487,7 @@ function workerRuntime() {
     lcm: (a, b) => Math.abs(a * b) / util.gcd(a, b),
     frac: (n, d) => (d === 1 ? String(n) : '\\frac{' + n + '}{' + d + '}'),
     simplify: (n, d) => { const g = util.gcd(n, d) || 1; return [n / g, d / g]; },
+    level: 1,
   };
 
   const timers = {
@@ -497,15 +524,25 @@ function workerRuntime() {
     const steps = g.steps == null ? [] : (Array.isArray(g.steps) ? g.steps : [g.steps]);
     return { question: String(g.question), choices, correctIndex, steps, data: g.data || {} };
   }
-  async function askExercise(cfg, ex, i, total, score) {
-    const norm = normalize(await ex.generate(util));
+  async function askExercise(cfg, ex, i, total, score, level = 1, seenQuestions = null) {
+    util.level = level;
+    let generated;
+    for (let tries = 0; tries < 24; tries++) {
+      generated = await ex.generate(util);
+      const signature = String(generated.question || '').trim();
+      if (!seenQuestions || !seenQuestions.has(signature) || tries === 23) {
+        if (seenQuestions) seenQuestions.add(signature);
+        break;
+      }
+    }
+    const norm = normalize(generated);
     const [qHtml, cHtml, sHtml] = await Promise.all([
       md(norm.question),
       Promise.all(norm.choices.map(c => md(c, true))),
       Promise.all(norm.steps.map(s => md(s))),
     ]);
     const hasSlides = !!(cfg.slides && cfg.slides.length);
-    const header = { type: ex.type || 'Exercice', index: i + 1, total, score, timeout: ex.timeout || 0, canReview: hasSlides };
+    const header = { type: ex.type || 'Exercice', level, index: i + 1, total, score, timeout: ex.timeout || 0, canReview: hasSlides };
     let outcome, ms;
     while (true) {
       toFrame({ t: 'exercise', header, question: qHtml, choices: cHtml });
@@ -530,13 +567,27 @@ function workerRuntime() {
     await nextP;
     return { correct, ms };
   }
+  function exercisePicker(exercises) {
+    let bag = [], previous = null;
+    return () => {
+      if (!bag.length) {
+        bag = util.shuffle(exercises);
+        if (bag.length > 1 && bag[bag.length - 1] === previous) [bag[0], bag[bag.length - 1]] = [bag[bag.length - 1], bag[0]];
+      }
+      previous = bag.pop();
+      return previous;
+    };
+  }
   async function runExercises(cfg) {
+    if (Array.isArray(cfg.series) && cfg.series.length) return runExerciseSeries(cfg);
     const exs = cfg.exercises, rounds = cfg.rounds || 10;
+    const pickExercise = exercisePicker(exs), seenQuestions = new Set();
     while (true) {
       let score = 0; const times = [];
       for (let i = 0; i < rounds; i++) {
-        const ex = exs.length === 1 ? exs[0] : util.pick(exs);
-        const r = await askExercise(cfg, ex, i, rounds, score);
+        const ex = pickExercise();
+        const level = Math.min(5, 1 + Math.floor(i * 5 / rounds));
+        const r = await askExercise(cfg, ex, i, rounds, score, level, seenQuestions);
         if (r.correct) { score++; times.push(r.ms); }
       }
       const avg = times.length ? (times.reduce((a, b) => a + b, 0) / times.length / 1000).toFixed(1).replace('.', ',') + ' s' : '—';
@@ -546,11 +597,74 @@ function workerRuntime() {
         + '<div class="stat"><b>' + pct + ' %</b><span>Réussite</span></div>'
         + '<div class="stat"><b>' + avg + '</b><span>Temps moyen (bonnes réponses)</span></div></div>'
         + '<p>' + (pct >= 80 ? 'Excellent travail, continuez ainsi !' : pct >= 50 ? 'Bien joué, encore un peu de pratique et ce sera parfait.' : 'Pas de souci : revoyez la leçon puis réessayez.') + '</p>';
-      const actions = [{ id: 'again', label: 'Nouvelle série', primary: true }];
+      const actions = [{ id: 'again', label: 'Continuer avec une nouvelle série', primary: true }, { id: 'finish', label: 'Terminer' }];
       if (cfg.slides && cfg.slides.length) actions.push({ id: 'review', label: 'Revoir la leçon' });
-      toFrame({ t: 'html', html, actions });
-      const a = await waitFor('action');
-      if (a.id === 'review') await runSlides(cfg.slides, true);
+      let a;
+      do {
+        toFrame({ t: 'html', html, actions });
+        a = await waitFor('action');
+        if (a.id === 'review') await runSlides(cfg.slides, true);
+      } while (a.id === 'review');
+      if (a.id === 'finish') return;
+      seenQuestions.clear();
+    }
+  }
+  async function runExerciseSeries(cfg) {
+    const levels = cfg.series;
+    while (true) {
+      let totalScore = 0, totalRounds = 0;
+      for (let index = 0; index < levels.length; index++) {
+        const level = levels[index];
+        if (!Array.isArray(level.exercises) || !level.exercises.length) continue;
+        const rounds = level.rounds || 5, pickExercise = exercisePicker(level.exercises), seenQuestions = new Set();
+        let score = 0; const times = [];
+        for (let i = 0; i < rounds; i++) {
+          const ex = pickExercise();
+          const r = await askExercise(cfg, ex, i, rounds, score, index + 1, seenQuestions);
+          if (r.correct) { score++; times.push(r.ms); }
+        }
+        totalScore += score; totalRounds += rounds;
+        if (index + 1 >= levels.length) continue;
+        const pct = Math.round(score / rounds * 100);
+        const avg = times.length ? (times.reduce((a, b) => a + b, 0) / times.length / 1000).toFixed(1).replace('.', ',') + ' s' : '—';
+        const html = '<h1>' + esc(level.name || ('Niveau ' + (index + 1))) + ' terminé</h1><div class="stats">'
+          + '<div class="stat"><b>' + score + ' / ' + rounds + '</b><span>Bonnes réponses</span></div>'
+          + '<div class="stat"><b>' + pct + ' %</b><span>Réussite</span></div>'
+          + '<div class="stat"><b>' + avg + '</b><span>Temps moyen (bonnes réponses)</span></div></div>'
+          + '<p>' + (pct >= 80 ? 'Très bien !' : pct >= 50 ? 'Bon travail.' : 'Continuez à vous entraîner.') + '</p>';
+        const actions = [{ id: 'continue', label: 'Continuer vers le niveau suivant', primary: true }, { id: 'stop', label: 'Arrêter ici' }];
+        if (cfg.slides && cfg.slides.length) actions.push({ id: 'review', label: 'Revoir le cours' });
+        let choice;
+        do {
+          toFrame({ t: 'html', html, actions });
+          choice = await waitFor('action');
+          if (choice.id === 'review') await runSlides(cfg.slides, true);
+        } while (choice.id === 'review');
+        if (choice.id === 'stop') {
+          const pausedHtml = '<h1>Parcours en pause</h1><p>Vous avez terminé ' + esc(level.name || ('le niveau ' + (index + 1))) + '. Le niveau suivant ne commencera que si vous le choisissez.</p>';
+          const pausedActions = [{ id: 'resume', label: 'Reprendre au niveau suivant', primary: true }, { id: 'finish', label: 'Terminer' }];
+          if (cfg.slides && cfg.slides.length) pausedActions.push({ id: 'review', label: 'Revoir le cours' });
+          let pausedChoice;
+          do {
+            toFrame({ t: 'html', html: pausedHtml, actions: pausedActions });
+            pausedChoice = await waitFor('action');
+            if (pausedChoice.id === 'review') await runSlides(cfg.slides, true);
+          } while (pausedChoice.id === 'review');
+          if (pausedChoice.id === 'finish') return;
+          continue;
+        }
+      }
+      const pct = totalRounds ? Math.round(totalScore / totalRounds * 100) : 0;
+      const html = '<h1>Parcours terminé</h1><div class="stats"><div class="stat"><b>' + totalScore + ' / ' + totalRounds + '</b><span>Bonnes réponses</span></div><div class="stat"><b>' + pct + ' %</b><span>Réussite totale</span></div></div><p>Vous avez parcouru tous les niveaux, du calcul de base aux exercices de synthèse.</p>';
+      const actions = [{ id: 'restart', label: 'Recommencer le parcours', primary: true }, { id: 'finish', label: 'Terminer' }];
+      if (cfg.slides && cfg.slides.length) actions.push({ id: 'review', label: 'Revoir le cours' });
+      let choice;
+      do {
+        toFrame({ t: 'html', html, actions });
+        choice = await waitFor('action');
+        if (choice.id === 'review') await runSlides(cfg.slides, true);
+      } while (choice.id === 'review');
+      if (choice.id === 'finish') return;
     }
   }
   async function lesson(cfg) {
@@ -561,7 +675,7 @@ function workerRuntime() {
       await request('understood', { ms: r.ms, retries: r.retries });
       info.understood = true;
     }
-    if (cfg.exercises && cfg.exercises.length) return runExercises(cfg);
+    if ((cfg.exercises && cfg.exercises.length) || (cfg.series && cfg.series.length)) return runExercises(cfg);
     while (slides.length) {
       toFrame({ t: 'html', html: '<h1>Leçon terminée ✓</h1><p>Cette leçon ne contient pas d\'exercices.</p>', actions: [{ id: 'review', label: 'Revoir la leçon', primary: true }] });
       await waitFor('action');
@@ -576,6 +690,10 @@ function workerRuntime() {
     lesson,
     slides: (list, opts) => runSlides(list, !!(opts && opts.review)),
     timer: timers,
+    visual: {
+      plane: options => request('visual', { name: 'plane', options: options || {} }),
+      vectorArrow: options => request('visual', { name: 'vectorArrow', options: options || {} }),
+    },
     save: {
       exercise: row => request('save', { table: 'exercises', row }),
       interaction: row => request('save', { table: 'interactions', row }),
@@ -688,6 +806,7 @@ body{background:var(--bg);color:var(--fg);font-family:Inter,ui-sans-serif,system
 .step{display:flex;gap:.9rem;padding:.55rem 0;animation:viewIn .4s ease both}
 .step .n{width:1.7rem;height:1.7rem;border-radius:99px;background:var(--accent-soft);color:var(--accent);font:700 .78rem Inter,sans-serif;display:grid;place-items:center;flex-shrink:0;margin-top:.2rem}
 .step .prose{font-size:1rem;line-height:1.7}.step .prose p{margin:0}
+.em-visual{margin:1.2rem auto;padding:1rem;background:var(--surface);border:1px solid var(--border);border-radius:1.1rem;max-width:32rem}.em-visual svg{display:block;width:100%;height:auto}.em-visual figcaption{margin-top:.5rem;color:var(--muted);font-size:.88rem;text-align:center}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));gap:.8rem;margin:1.3rem 0}
 .stat{background:var(--surface);border:1px solid var(--border);border-radius:1.2rem;padding:1.1rem 1.2rem}
 .stat b{display:block;font-size:1.9rem;font-weight:800;letter-spacing:-.03em;color:var(--accent)}.stat span{font-size:.78rem;color:var(--muted)}
@@ -1147,6 +1266,11 @@ async function onWorkerMsg(tab, worker, m) {
   try {
     switch (m.type) {
       case 'md': return reply(renderMarkdown(m.text, m.inline));
+      case 'visual': {
+        const createVisual = EM_VISUALS[m.name];
+        if (!createVisual) throw new Error('Visuel inconnu : ' + m.name);
+        return reply(createVisual(m.options || {}));
+      }
       case 'save': {
         if (!['exercises', 'interactions'].includes(m.table)) throw new Error('Table inconnue : ' + m.table);
         await DB.add(m.table, { ...m.row, ...meta }); return reply(true);
