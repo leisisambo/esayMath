@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "courses": [
+    {
+      "path": "courses/algebre",
+      "name": "Alg\u00e8bre",
+      "lessons": [
+        {
+          "name": "R\u00e9soudre une \u00e9quation du premier degr\u00e9",
+          "path": "courses/algebre/equation_premier_degre.js",
+          "url": "courses/algebre/equation_premier_degre.js",
+          "keywords": [
+            "\u00e9quation",
+            "premier degr\u00e9",
+            "r\u00e9solution",
+            "inconnue",
+            "alg\u00e8bre",
+            "\u00e9galit\u00e9"
+          ]
+        },
+        {
+          "name": "Factoriser une expression alg\u00e9brique",
+          "path": "courses/algebre/factorisation.js",
+          "url": "courses/algebre/factorisation.js",
+          "keywords": [
+            "factorisation",
+            "factoriser",
+            "identit\u00e9s remarquables",
+            "d\u00e9veloppement",
+            "alg\u00e8bre"
+          ]
+        },
+        {
+          "name": "R\u00e9soudre un syst\u00e8me de deux \u00e9quations \u00e0 deux inconnues",
+          "path": "courses/algebre/systemes_deux_inconnues.js",
+          "url": "courses/algebre/systemes_deux_inconnues.js",
+          "keywords": [
+            "syst\u00e8me",
+            "\u00e9quations",
+            "deux inconnues",
+            "substitution",
+            "alg\u00e8bre"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "courses/math_logique",
+      "name": "Logique math\u00e9matique",
+      "lessons": [
+        {
+          "name": "Les bases du raisonnement math\u00e9matique",
+          "path": "courses/math_logique/raisonnement.js",
+          "url": "courses/math_logique/raisonnement.js",
+          "keywords": [
+            "raisonnement",
+            "logique",
+            "preuve",
+            "math\u00e9matiques"
+          ]
+        },
+        {
+          "name": "Quantificateurs : pour tout et il existe",
+          "path": "courses/math_logique/quantificateur.js",
+          "url": "courses/math_logique/quantificateur.js",
+          "keywords": [
+            "quantificateur",
+            "universel",
+            "existentiel",
+            "pour tout",
+            "il existe",
+            "logique"
+          ]
+        },
+        {
+          "name": "M\u00e9thodes de d\u00e9monstration en math\u00e9matiques",
+          "path": "courses/math_logique/methodes_de_raisonnement.js",
+          "url": "courses/math_logique/methodes_de_raisonnement.js",
+          "keywords": [
+            "d\u00e9monstration",
+            "raisonnement",
+            "preuve",
+            "contrapos\u00e9e",
+            "r\u00e9currence"
+          ]
+        },
+        {
+          "name": "N\u00e9gation et connecteurs logiques",
+          "path": "courses/math_logique/lcon_sur_negation_et_connecteur_logique.js",
+          "url": "courses/math_logique/lcon_sur_negation_et_connecteur_logique.js",
+          "keywords": [
+            "n\u00e9gation",
+            "connecteur logique",
+            "et",
+            "ou",
+            "implication",
+            "logique"
+          ]
+        }
+      ]
+    }
+  ]
+}

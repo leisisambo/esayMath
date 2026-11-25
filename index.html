@@ -1,9 +1,11 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>EasyMath</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#4f46e5">
 <script>
 (function(){try{var t=localStorage.getItem('em-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.classList.toggle('dark',t==='dark');}catch(e){}})();
 </script>
@@ -101,6 +103,14 @@ textarea.input{resize:vertical;line-height:1.55;font-size:.8rem;min-height:12rem
 .modal-head h3{font-size:1.1rem;font-weight:700;letter-spacing:-.01em}.modal-head p{font-size:.8rem;color:var(--muted);margin-top:.15rem}
 .modal-body{padding:.6rem 1.4rem 1rem;overflow:auto}
 .modal-foot{display:flex;justify-content:flex-end;gap:.6rem;padding:.9rem 1.4rem 1.2rem}
+.library-tabs{display:flex;gap:.5rem;overflow-x:auto;padding:.15rem .1rem .75rem;scrollbar-width:none}
+.library-tab{flex:0 0 auto;border:1px solid var(--border);border-radius:999px;background:transparent;color:var(--muted);padding:.5rem .85rem;font-size:.8rem;font-weight:600;cursor:pointer;transition:background .2s,color .2s,border-color .2s}
+.library-tab.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.library-tab.has-results{box-shadow:inset 0 0 0 1px var(--accent);color:var(--accent)}
+.library-viewport{overflow:hidden;min-height:12rem}
+.library-lessons{display:grid;gap:.5rem;opacity:1;transform:translateX(0);transition:opacity .18s ease,transform .22s ease}
+.library-lessons.slide-left{opacity:0;transform:translateX(-1.5rem)}.library-lessons.slide-right{opacity:0;transform:translateX(1.5rem)}
+.library-lesson{display:flex;align-items:center;gap:.75rem;padding:.75rem;border:1px solid var(--border);border-radius:.9rem;background:var(--surface)}
 .modal-error{margin:0 1.4rem .4rem;padding:.6rem .85rem;border-radius:.8rem;background:var(--bad-soft);color:var(--bad);font-size:.8rem;font-weight:500}
 .doc h4{font-weight:700;font-size:.9rem;margin:1.1rem 0 .4rem}.doc p,.doc li{font-size:.84rem;line-height:1.65;color:var(--muted)}.doc ul{padding-left:1.1rem;list-style:disc}
 .doc pre{background:var(--surface-2);border:1px solid var(--border);border-radius:.9rem;padding:.8rem 1rem;overflow:auto;font-size:.76rem;line-height:1.6;margin:.5rem 0;font-family:'JetBrains Mono',monospace;color:var(--fg)}
@@ -131,6 +141,7 @@ textarea.input{resize:vertical;line-height:1.55;font-size:.8rem;min-height:12rem
         <div class="logo">∑</div>
         <div><div class="font-extrabold tracking-tight leading-none">EasyMath</div><div class="text-[11px] muted mt-1">Apprendre en pratiquant</div></div>
       </div>
+      <button id="btn-library" class="icon-btn" title="Bibliothèque des leçons" aria-label="Bibliothèque des leçons"></button>
       <button id="btn-theme" class="icon-btn" title="Changer de thème"></button>
     </div>
     <div class="px-4">
@@ -201,6 +212,7 @@ const ICONS = {
   undo:'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
   check:'<path d="M20 6 9 17l-5-5"/>',
   book:'<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>',
+  library:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M8 7h8M8 11h8"/>',
   code:'<path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/>',
 };
 const icon = (n, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">${ICONS[n]}</svg>`;
@@ -696,7 +708,7 @@ const workerUrl = () => _workerUrl || (_workerUrl = URL.createObjectURL(new Blob
 const state = {
   courses: [], lessons: [], progress: new Map(),
   expanded: new Set(JSON.parse(localStorage.getItem('em-expanded') || '[]')),
-  query: '', tabs: new Map(), activeTab: null,
+  query: '', catalog: [], tabs: new Map(), activeTab: null,
 };
 const saveExpanded = () => localStorage.setItem('em-expanded', JSON.stringify([...state.expanded]));
 async function loadState() {
@@ -706,15 +718,44 @@ async function loadState() {
   state.progress = new Map(p.map(x => [x.lessonId, x]));
 }
 
+async function loadCatalog() {
+  try { const r = await fetch('courses.json', { cache: 'no-cache' }); if (!r.ok) throw new Error('Catalogue indisponible'); const d = await r.json(); state.catalog = d.courses || []; }
+  catch (e) { console.warn('Catalogue des leçons indisponible', e); }
+}
+function installedCatalogLesson(item) { return state.lessons.find(l => l.sourceUrl === item.url || l.sourcePath === item.path); }
+async function installCatalogLesson(item, button) {
+  button.disabled = true; button.textContent = 'Téléchargement…';
+  try {
+    const response = await fetch(item.url, { cache: 'no-cache' }); if (!response.ok) throw new Error('Leçon inaccessible (' + response.status + ')');
+    const script = await response.text();
+    let course = state.courses.find(c => norm(c.name) === norm(item.courseName));
+    if (!course) { const id = await DB.add('courses', { name: item.courseName, createdAt: Date.now(), sourcePath: item.coursePath }); course = { id, name: item.courseName }; }
+    const existing = installedCatalogLesson(item);
+    const lesson = { ...(existing || {}), courseId: course.id, name: item.name, script, sourceUrl: item.url, sourcePath: item.path, keywords: item.keywords || [], catalogVersion: item.version || 1, updatedAt: Date.now() };
+    if (existing) await DB.put('lessons', lesson); else { lesson.createdAt = Date.now(); await DB.add('lessons', lesson); }
+    await loadState(); renderTree(); toast(existing ? 'Leçon mise à jour' : 'Leçon téléchargée');
+  } catch(e) { toast('Téléchargement impossible : ' + e.message, 'error'); button.disabled = false; button.textContent = 'Télécharger'; }
+}
+async function checkLessonUpdates() {
+  for (const course of state.catalog) for (const item of course.lessons || []) {
+    const installed = installedCatalogLesson(item); if (!installed) continue;
+    try { const r = await fetch(item.url, { cache: 'no-cache' }); if (!r.ok) continue; const script = await r.text();
+      if (script !== installed.script) await DB.put('lessons', { ...installed, script, name: item.name, keywords: item.keywords || [], catalogVersion: item.version || 1, updatedAt: Date.now() });
+    } catch(e) { console.warn('Mise à jour ignorée pour', item.name, e); }
+  }
+  await loadState(); renderTree();
+}
+
 /* ---------- arbre des cours ---------- */
 function renderTree() {
   const q = norm(state.query.trim());
-  let html = '';
+  let html = ''; let localMatches = 0;
   for (const c of state.courses) {
     const ls = state.lessons.filter(l => l.courseId === c.id);
     const cMatch = !q || norm(c.name).includes(q);
     const shown = q ? (cMatch ? ls : ls.filter(l => norm(l.name).includes(q))) : ls;
     if (q && !cMatch && !shown.length) continue;
+    localMatches += cMatch ? Math.max(1, ls.length) : shown.length;
     const open = q ? true : state.expanded.has(c.id);
     html += `<div class="course mb-1" data-course="${c.id}">
       <div class="course-row group" data-act="toggle">
@@ -739,6 +780,11 @@ function renderTree() {
             </span></div>`;
         }).join('') : `<div class="text-xs muted py-2" style="margin-left:2.4rem">${q ? 'Aucune leçon trouvée' : 'Aucune leçon — cliquez sur +'}</div>`}
       </div></div></div>`;
+  }
+  if (q && !localMatches) {
+    const matches = state.catalog.flatMap(course => (course.lessons || []).map(item => ({ ...item, courseName: course.name, coursePath: course.path })))
+      .filter(item => norm([item.name, item.courseName, ...(item.keywords || [])].join(' ')).includes(q));
+    if (matches.length) html = '<div class="px-2 py-3 text-xs font-semibold uppercase tracking-wider muted">Leçons disponibles</div>' + matches.map(item => { const installed = installedCatalogLesson(item); return `<div class="lesson-row" style="margin-left:0"><span class="flex-1"><strong>${esc(item.name)}</strong><br><small>${esc(item.courseName)}</small></span>${installed ? '<span class="badge">Installée</span>' : `<button class="btn btn-outline" data-install-path="${esc(item.path)}" style="padding:.45rem .65rem;font-size:.75rem">Télécharger</button>`}</div>`; }).join('');
   }
   $('#tree').innerHTML = html || `<div class="text-center muted text-sm px-4 py-10 fade-in">${q ? 'Aucun résultat.' : 'Aucun cours pour le moment.<br>Cliquez sur « Ajouter un cours ».'}</div>`;
   $('#empty-text').textContent = state.courses.length
@@ -774,6 +820,7 @@ $('#tree').addEventListener('click', async e => {
   }
 });
 $('#search').addEventListener('input', e => { state.query = e.target.value; renderTree(); });
+$('#tree').addEventListener('click', e => { const b = e.target.closest('[data-install-path]'); if (!b) return; const item = state.catalog.flatMap(c => (c.lessons || []).map(l => ({ ...l, courseName: c.name, coursePath: c.path }))).find(l => l.path === b.dataset.installPath); if (item) installCatalogLesson(item, b); });
 
 /* ---------- modals ---------- */
 function openModal({ title, subtitle = '', body, submitLabel = 'Valider', cancelLabel = 'Annuler', wide = false, danger = false, noActions = false, onSubmit, onClose }) {
@@ -793,6 +840,7 @@ function openModal({ title, subtitle = '', body, submitLabel = 'Valider', cancel
   back.addEventListener('mousedown', e => { if (e.target === back) close(); });
   form.addEventListener('submit', async e => {
     e.preventDefault(); ctl.error('');
+    if (noActions) return;
     try { const r = await (onSubmit && onSubmit(form, ctl)); if (r !== false) close(); } catch (err) { ctl.error(err.message || String(err)); }
   });
   setTimeout(() => { const f = $('input,textarea,select', form); f && f.focus(); }, 60);
@@ -805,6 +853,62 @@ function confirmDialog({ title, message, confirmLabel = 'Confirmer' }) {
       onSubmit: () => { done = true; res(true); }, onClose: () => { if (!done) res(false); } });
   });
 }
+
+function openLessonLibrary() {
+  const courses = state.catalog;
+  if (!courses.length) return toast('Le catalogue des leçons est indisponible.', 'error');
+  let activeIndex = 0, query = '', slideDirection = 'left', showAllSearchResults = true;
+  const itemsFor = course => (course.lessons || []).map(item => ({ ...item, courseName: course.name, coursePath: course.path }));
+  const body = `<label class="field"><span>Rechercher dans la bibliothèque</span><input id="library-search" class="input" placeholder="Titre ou mot-clé…" autocomplete="off"></label>
+    <div class="library-tabs" role="tablist" aria-label="Cours"></div><div class="library-viewport"><div class="library-lessons"></div></div>`;
+  const modal = openModal({ title: 'Bibliothèque des leçons', subtitle: 'Parcourez les cours et téléchargez les leçons à installer.', body, wide: true, noActions: true });
+  const tabs = $('.library-tabs', modal.el), viewport = $('.library-lessons', modal.el), search = $('#library-search', modal.el);
+  function matchingItems() {
+    const q = norm(query.trim());
+    return courses.flatMap((course, courseIndex) => itemsFor(course).map(item => ({ ...item, courseIndex })))
+      .filter(item => !q || norm([item.name, item.courseName, ...(item.keywords || [])].join(' ')).includes(q));
+  }
+  function renderLessons() {
+    const matches = matchingItems();
+    const lessons = query.trim() && showAllSearchResults ? matches : matches.filter(item => item.courseIndex === activeIndex);
+    viewport.innerHTML = lessons.length ? lessons.map(item => {
+      const installed = installedCatalogLesson(item);
+      return `<article class="library-lesson"><span class="flex-1 min-w-0"><strong class="block text-sm">${esc(item.name)}</strong><span class="muted text-xs">${esc(item.courseName)}</span></span>${installed ? '<span class="badge">Installée</span>' : `<button type="button" class="btn btn-outline" data-library-download="${esc(item.path)}" style="padding:.5rem .7rem;font-size:.78rem">${icon('download')} Télécharger</button>`}</article>`;
+    }).join('') : '<p class="muted text-sm py-8 text-center">Aucune leçon ne correspond à cette recherche.</p>';
+  }
+  function renderTabs() {
+    const results = matchingItems();
+    tabs.innerHTML = courses.map((course, index) => {
+      const count = results.filter(item => item.courseIndex === index).length;
+      return `<button type="button" class="library-tab ${index === activeIndex ? 'active' : ''} ${query.trim() && count ? 'has-results' : ''}" role="tab" aria-selected="${index === activeIndex}" data-library-course="${index}">${esc(course.name)}${query.trim() ? ` <span class="badge">${count}</span>` : ''}</button>`;
+    }).join('');
+  }
+  renderTabs(); renderLessons();
+  search.addEventListener('input', () => {
+    query = search.value;
+    const results = matchingItems();
+    showAllSearchResults = true;
+    if (query.trim() && results.length) activeIndex = results[0].courseIndex;
+    renderTabs(); renderLessons();
+  });
+  tabs.addEventListener('click', e => {
+    const tab = e.target.closest('[data-library-course]'); if (!tab) return;
+    const next = Number(tab.dataset.libraryCourse);
+    if (next === activeIndex) { if (showAllSearchResults) { showAllSearchResults = false; renderTabs(); renderLessons(); } return; }
+    if (viewport.classList.contains('slide-left') || viewport.classList.contains('slide-right')) return;
+    slideDirection = next > activeIndex ? 'left' : 'right';
+    viewport.classList.add(`slide-${slideDirection}`);
+    setTimeout(() => { activeIndex = next; showAllSearchResults = false; renderTabs(); renderLessons(); viewport.classList.remove('slide-left', 'slide-right'); }, 180);
+  });
+  viewport.addEventListener('click', async e => {
+    const button = e.target.closest('[data-library-download]'); if (!button) return;
+    const item = courses.flatMap(course => itemsFor(course)).find(lesson => lesson.path === button.dataset.libraryDownload); if (!item) return;
+    await installCatalogLesson(item, button);
+    if (modal.el.isConnected) { renderTabs(); renderLessons(); }
+  });
+}
+$('#btn-library').innerHTML = icon('library');
+$('#btn-library').addEventListener('click', openLessonLibrary);
 
 $('#btn-add-course').addEventListener('click', () => {
   openModal({
@@ -1140,6 +1244,22 @@ function toggleSidebar(open) {
 $('#btn-menu').addEventListener('click', () => toggleSidebar(true));
 $('#scrim').addEventListener('click', () => toggleSidebar(false));
 
+let deferredInstallPrompt = null;
+function setupInstallPrompt() {
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstallPrompt = e; if (!localStorage.getItem('em-install-dismissed')) showInstallPrompt(); });
+  window.addEventListener('appinstalled', () => { deferredInstallPrompt = null; document.querySelector('#install-prompt')?.remove(); });
+  if (window.matchMedia('(display-mode: standalone)').matches || navigator.standalone) return;
+  setTimeout(() => { if (!localStorage.getItem('em-install-dismissed')) showInstallPrompt(); }, 1200);
+}
+function showInstallPrompt() {
+  if ($('#install-prompt')) return;
+  const box = h('div', 'modal-back show'); box.id = 'install-prompt';
+  box.innerHTML = '<div class="modal"><div class="modal-head"><div><h3 class="font-bold text-lg">Installer EasyMath</h3><p class="muted text-sm mt-1">Retrouvez vos leçons depuis votre écran d’accueil.</p></div></div><div class="p-5 flex justify-end gap-2"><button class="btn btn-ghost" data-dismiss>Plus tard</button><button class="btn btn-primary" data-install>Installer</button></div></div>';
+  document.body.append(box);
+  box.querySelector('[data-dismiss]').onclick = () => { localStorage.setItem('em-install-dismissed', '1'); box.remove(); };
+  box.querySelector('[data-install]').onclick = async () => { if (deferredInstallPrompt) { deferredInstallPrompt.prompt(); await deferredInstallPrompt.userChoice; deferredInstallPrompt = null; box.remove(); } else { box.querySelector('p').textContent = 'Dans le menu du navigateur, choisissez Installer l’application ou Ajouter à l’écran d’accueil.'; } };
+}
+
 (async function init() {
   $('#btn-add-course').innerHTML = icon('plus') + ' Ajouter un cours';
   $('#ico-search').innerHTML = icon('search');
@@ -1147,9 +1267,11 @@ $('#scrim').addEventListener('click', () => toggleSidebar(false));
   $('#btn-export').innerHTML = icon('download') + ' Exporter (Excel)';
   $('#btn-help').innerHTML = icon('code') + ' API';
   applyTheme(document.documentElement.classList.contains('dark') ? 'dark' : 'light');
-  try { await DB.open(); await loadState(); }
+  try { await DB.open(); await loadState(); await loadCatalog(); await checkLessonUpdates(); }
   catch (e) { toast('IndexedDB indisponible : ' + e.message, 'error'); }
   renderTree(); renderTabs();
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('worker.js').catch(e => console.warn('Service worker indisponible', e));
+  setupInstallPrompt();
 })();
 </script>
 </body>
