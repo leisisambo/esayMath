@@ -79,6 +79,73 @@
           ]
         },
         {
+          "name": "Introduction aux matrices",
+          "path": "courses/algebre_lineaire/matrices.js",
+          "url": "courses/algebre_lineaire/matrices.js",
+          "keywords": [
+            "matrice",
+            "dimensions",
+            "addition de matrices",
+            "multiplication matricielle",
+            "matrice identité",
+            "transformation linéaire"
+          ]
+        },
+        {
+          "name": "Opérations fondamentales sur les matrices",
+          "path": "courses/algebre_lineaire/operations_matrices.js",
+          "url": "courses/algebre_lineaire/operations_matrices.js",
+          "keywords": [
+            "transposée",
+            "matrice inverse",
+            "déterminant",
+            "rang",
+            "trace",
+            "puissance d’une matrice"
+          ]
+        },
+        {
+          "name": "Le déterminant et ses applications",
+          "path": "courses/algebre_lineaire/determinant_applications.js",
+          "url": "courses/algebre_lineaire/determinant_applications.js",
+          "keywords": [
+            "déterminant 2x2",
+            "déterminant 3x3",
+            "règle de Sarrus",
+            "inversibilité",
+            "aire et volume",
+            "orientation",
+            "dépendance linéaire"
+          ]
+        },
+        {
+          "name": "Systèmes linéaires et résolution matricielle",
+          "path": "courses/algebre_lineaire/systemes_lineaires_matrices.js",
+          "url": "courses/algebre_lineaire/systemes_lineaires_matrices.js",
+          "keywords": [
+            "système linéaire",
+            "matrice des coefficients",
+            "A x = b",
+            "matrice inverse",
+            "solution unique",
+            "systèmes incompatibles",
+            "vision par ordinateur"
+          ]
+        },
+        {
+          "name": "Base et dimension d’un espace vectoriel",
+          "path": "courses/algebre_lineaire/base_dimension.js",
+          "url": "courses/algebre_lineaire/base_dimension.js",
+          "keywords": [
+            "base",
+            "dimension",
+            "indépendance linéaire",
+            "coordonnées dans une base",
+            "R2",
+            "R3"
+          ]
+        },
+        {
           "name": "Orthogonalité, angles et projections",
           "path": "courses/algebre_lineaire/orthogonalite_angle_projection.js",
           "url": "courses/algebre_lineaire/orthogonalite_angle_projection.js",
@@ -88,6 +155,19 @@
             "angle entre deux vecteurs",
             "projection orthogonale",
             "distance à une droite"
+          ]
+        },
+        {
+          "name": "Projection orthogonale et matrices de projection",
+          "path": "courses/algebre_lineaire/projection_orthogonale_matrices.js",
+          "url": "courses/algebre_lineaire/projection_orthogonale_matrices.js",
+          "keywords": [
+            "projection orthogonale",
+            "matrice de projection",
+            "sous-espace vectoriel",
+            "résidu orthogonal",
+            "distance à une droite",
+            "PCA"
           ]
         }
       ]

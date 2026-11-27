@@ -410,12 +410,12 @@ function iframeRuntime() {
     const top = h('div', 'ex-top');
     top.append(h('span', 'chip chip-accent', hd.type));
     if (hd.level) top.append(h('span', 'chip', 'Niveau ' + hd.level));
-    top.append(h('span', 'chip', 'Question ' + hd.index + ' / ' + hd.total));
+    top.append(h('span', 'chip', hd.total ? 'Question ' + hd.index + ' / ' + hd.total : 'Question ' + hd.index));
     if (hd.timeout) top.append(h('span', 'chip', '⏱ ' + hd.timeout + ' s'));
     top.append(h('span', 'chip chip-ok', '✓ ' + hd.score));
     const sp = h('span', 'grow'); top.append(sp);
     if (hd.canReview) top.append(btn('Revoir la leçon', 'btn btn-ghost btn-sm', () => send({ t: 'review' })));
-    const prog = h('div', 'ex-prog', '<i style="width:' + ((hd.index - 1) / hd.total * 100) + '%"></i>');
+    const prog = hd.total ? h('div', 'ex-prog', '<i style="width:' + ((hd.index - 1) / hd.total * 100) + '%"></i>') : null;
     const card = h('div', 'card prose', m.question);
     const grid = h('div', 'choices');
     ex = { choices: [], locked: false };
@@ -427,7 +427,9 @@ function iframeRuntime() {
       ex.choices.push(b); grid.append(b);
     });
     ex.feedback = h('div', 'feedback-slot'); ex.steps = h('div', 'steps-slot'); ex.foot = h('div', 'actions');
-    page.append(top, prog, card, grid, ex.feedback, ex.steps, ex.foot);
+    page.append(top);
+    if (prog) page.append(prog);
+    page.append(card, grid, ex.feedback, ex.steps, ex.foot);
     setView(page);
   }
   function reveal(m) {
@@ -610,6 +612,7 @@ function workerRuntime() {
     }
   }
   async function runExerciseSeries(cfg) {
+    if (cfg.progressiveSeries) return runProgressiveExerciseSeries(cfg);
     const levels = cfg.series;
     while (true) {
       let totalScore = 0, totalRounds = 0;
@@ -658,6 +661,43 @@ function workerRuntime() {
       const html = '<h1>Parcours terminé</h1><div class="stats"><div class="stat"><b>' + totalScore + ' / ' + totalRounds + '</b><span>Bonnes réponses</span></div><div class="stat"><b>' + pct + ' %</b><span>Réussite totale</span></div></div><p>Vous avez parcouru tous les niveaux, du calcul de base aux exercices de synthèse.</p>';
       const actions = [{ id: 'restart', label: 'Recommencer le parcours', primary: true }, { id: 'finish', label: 'Terminer' }];
       if (cfg.slides && cfg.slides.length) actions.push({ id: 'review', label: 'Revoir le cours' });
+      let choice;
+      do {
+        toFrame({ t: 'html', html, actions });
+        choice = await waitFor('action');
+        if (choice.id === 'review') await runSlides(cfg.slides, true);
+      } while (choice.id === 'review');
+      if (choice.id === 'finish') return;
+    }
+  }
+  async function runProgressiveExerciseSeries(cfg) {
+    const levels = cfg.series.filter(level => Array.isArray(level.exercises) && level.exercises.length);
+    if (!levels.length) return;
+    while (true) {
+      const pickers = levels.map(level => exercisePicker(level.exercises));
+      const seenQuestions = levels.map(() => new Set());
+      const totalRounds = levels.reduce((sum, level) => sum + (level.rounds || 5), 0);
+      let totalScore = 0, index = 0;
+      const times = [];
+      for (let levelIndex = 0; levelIndex < levels.length; levelIndex++) {
+        const level = levels[levelIndex];
+        const rounds = level.rounds || 5;
+        for (let i = 0; i < rounds; i++) {
+          const ex = pickers[levelIndex]();
+          const r = await askExercise(cfg, ex, index, totalRounds, totalScore, levelIndex + 1, seenQuestions[levelIndex]);
+          index++;
+          if (r.correct) { totalScore++; times.push(r.ms); }
+        }
+      }
+      const pct = Math.round(totalScore / totalRounds * 100);
+      const avg = times.length ? (times.reduce((a, b) => a + b, 0) / times.length / 1000).toFixed(1).replace('.', ',') + ' s' : '—';
+      const html = '<h1>Bilan de la série</h1><div class="stats">'
+        + '<div class="stat"><b>' + totalScore + ' / ' + totalRounds + '</b><span>Bonnes réponses</span></div>'
+        + '<div class="stat"><b>' + pct + ' %</b><span>Réussite</span></div>'
+        + '<div class="stat"><b>' + avg + '</b><span>Temps moyen (bonnes réponses)</span></div></div>'
+        + '<p>' + (pct >= 80 ? 'Excellent travail, continuez ainsi !' : pct >= 50 ? 'Bien joué, encore un peu de pratique et ce sera parfait.' : 'Pas de souci : revoyez la leçon puis réessayez.') + '</p>';
+      const actions = [{ id: 'again', label: 'Continuer avec une nouvelle série', primary: true }, { id: 'finish', label: 'Terminer' }];
+      if (cfg.slides && cfg.slides.length) actions.push({ id: 'review', label: 'Revoir la leçon' });
       let choice;
       do {
         toFrame({ t: 'html', html, actions });

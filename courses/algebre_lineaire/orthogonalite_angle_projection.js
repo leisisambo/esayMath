@@ -173,4 +173,4 @@ const levels = [
   }
 ];
 
-EM.lesson({ slides, series: levels });
+EM.lesson({ slides, series: levels, progressiveSeries: true });
